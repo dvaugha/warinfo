@@ -17,6 +17,13 @@ const AD_KEYWORDS = [
     "partner content", "special report: sponsored", "buy now"
 ];
 
+const WAR_KEYWORDS = [
+    "iran", "israel", "strike", "missile", "attack", "war", "tehran", "tel aviv",
+    "defense", "idf", "irgc", "explosion", "conflict", "military", "strike",
+    "drone", "airspace", "siren", "hezbollah", "houthi", "gaza", "lebanon",
+    "retaliation", "operation", "threat", "ballistic", "uav"
+];
+
 let currentSource = 'all';
 let allNews = [];
 
@@ -85,11 +92,14 @@ async function fetchAllNews() {
                     };
 
                     if (isAdvertisement(newItem)) return null;
+                    if (!isWarRelated(newItem)) return null;
                     if (isNaN(newItem.timestamp)) return null;
                     if (newItem.title.length < 5) return null;
 
                     return newItem;
                 }).filter(item => item !== null);
+            } else {
+                console.warn(`Source ${key} returned empty contents or was blocked.`);
             }
         } catch (error) {
             console.error(`Error fetching ${key}:`, error);
@@ -233,6 +243,14 @@ function isAdvertisement(item) {
         return true;
     }
     return false;
+}
+
+/**
+ * Check if the item is related to the Iran strikes or war
+ */
+function isWarRelated(item) {
+    const content = (item.title + " " + item.description).toLowerCase();
+    return WAR_KEYWORDS.some(keyword => content.includes(keyword));
 }
 
 // Start the app
