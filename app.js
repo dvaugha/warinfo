@@ -470,46 +470,81 @@ function initMap() {
 
     const mapHtml = `
         <svg class="map-svg" viewBox="0 0 100 100">
+            <defs>
+                <linearGradient id="landGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+                </linearGradient>
+                <pattern id="scanlinePattern" width="100" height="2" patternUnits="userSpaceOnUse">
+                    <rect width="100" height="1" fill="rgba(255,255,255,0.05)" />
+                </pattern>
+            </defs>
+
             <!-- Background Water -->
-            <rect x="0" y="0" width="100" height="100" fill="#080a0f" />
+            <rect x="0" y="0" width="100" height="100" class="map-water" />
             
-            <!-- Mediterranean Sea -->
-            <path d="M0,45 Q10,48 15,55 L0,65 Z" fill="#0c121d" />
-            <!-- Red Sea -->
-            <path d="M12,75 Q15,85 10,100 L20,100 Q25,85 22,75 Z" fill="#0c121d" />
-            <!-- Persian Gulf -->
-            <path d="M65,75 Q75,85 90,80 L100,85 L100,70 Q85,65 65,75 Z" fill="#0c121d" />
+            <!-- Strategic Grid -->
+            <g class="map-grid">
+                ${Array.from({ length: 11 }).map((_, i) => `
+                    <line x1="${i * 10}" y1="0" x2="${i * 10}" y2="100" class="map-coordinate-line" />
+                    <line x1="0" y1="${i * 10}" x2="100" y2="${i * 10}" class="map-coordinate-line" />
+                `).join('')}
+            </g>
+
+            <!-- Major Water Bodies -->
+            <path d="M0,45 Q15,48 18,55 L0,65 Z" fill="#0b1320" /> <!-- Mediterranean -->
+            <path d="M12,75 Q15,85 10,100 L20,100 Q25,85 22,75 Z" fill="#0b1320" /> <!-- Red Sea -->
+            <path d="M65,75 Q75,85 90,80 L100,85 L100,70 Q85,65 65,75 Z" fill="#0b1320" /> <!-- Persian Gulf -->
 
             <g class="map-countries">
                 <!-- Egypt / Sinai -->
                 <path class="map-land" d="M0,60 L10,62 L15,75 L0,100 Z" />
+                <path class="map-coastline" d="M10,62 L15,75" />
+                
                 <!-- Israel / Palestine -->
                 <path class="map-land" d="M16,52 L19,52 L20,62 L15,62 Z" />
-                <!-- Jordan -->
-                <path class="map-land" d="M20,58 L28,58 L30,70 L22,72 Z" />
+                <path class="map-coastline" d="M16,52 L19,52" />
+                <path class="map-border" d="M19,52 L20,62" />
+                
                 <!-- Lebanon -->
                 <path class="map-land" d="M18,48 L21,48 L21,52 L18,52 Z" />
+                <path class="map-coastline" d="M18,48 L21,48" />
+                
                 <!-- Syria -->
                 <path class="map-land" d="M21,42 L35,42 L38,55 L22,55 Z" />
+                <path class="map-border" d="M21,42 L35,42" />
+                
+                <!-- Jordan -->
+                <path class="map-land" d="M20,58 L28,58 L30,70 L22,72 Z" />
+                
                 <!-- Iraq -->
                 <path class="map-land" d="M38,45 L58,42 L62,65 L36,68 Z" />
-                <!-- Saudi Arabia -->
-                <path class="map-land" d="M30,70 L60,70 L70,100 L20,100 Z" />
+                
                 <!-- Iran -->
                 <path class="map-land" d="M60,30 L95,30 L100,70 L65,75 Z" />
-                <!-- Turkey (Partial) -->
-                <path class="map-land" d="M20,20 L80,20 L75,30 L25,35 Z" />
+                <path class="map-coastline" d="M95,30 L100,70" />
+                
+                <!-- Saudi Arabia -->
+                <path class="map-land" d="M30,70 L60,70 L70,100 L20,100 Z" />
+            </g>
+
+            <!-- Scanline Overlay -->
+            <rect x="0" y="0" width="100" height="100" class="map-scanlines" />
+            
+            <!-- Tactical HUD Elements -->
+            <g class="map-compass" transform="translate(5, 5)">
+                <circle cx="0" cy="0" r="3" fill="none" stroke="currentColor" stroke-width="0.1" />
+                <line x1="-4" y1="0" x2="4" y2="0" stroke="currentColor" stroke-width="0.05" />
+                <line x1="0" y1="-4" x2="0" y2="4" stroke="currentColor" stroke-width="0.05" />
+                <text x="0" y="-5" text-anchor="middle" font-size="2">N</text>
             </g>
             
             <!-- Country Labels -->
             <text x="12" y="58" class="map-country-label" transform="rotate(-90, 12, 58)">Israel</text>
             <text x="5" y="85" class="map-country-label">Egypt</text>
-            <text x="21" y="65" class="map-country-label" transform="rotate(15,21,65)">Jordan</text>
-            <text x="28" y="48" class="map-country-label">Syria</text>
             <text x="45" y="55" class="map-country-label">Iraq</text>
             <text x="80" y="50" class="map-country-label">Iran</text>
             <text x="45" y="90" class="map-country-label">Saudi Arabia</text>
-            <text x="18" y="49" class="map-country-label" font-size="3">Lib.</text>
 
             <g class="map-cities">
                 ${Object.entries(CITY_COORDS).map(([name, pos]) => `
