@@ -497,6 +497,7 @@ function processStrikeDetection() {
                     persistentStrikes.push({
                         city: cityMatch,
                         title: item.title,
+                        source: item.sourceName,
                         timestamp: item.timestamp,
                         id: `strike-${item.timestamp}`
                     });
@@ -519,7 +520,9 @@ function renderPersistentStrikes() {
         if (!pos) return '';
 
         return `
-            <g class="map-strike-persistent" data-title="${escapeHTML(strike.title)}">
+            <g class="map-strike-persistent" 
+               data-title="${escapeHTML(strike.title)}" 
+               data-source="${escapeHTML(strike.source)}">
                 <circle class="strike-glow" cx="${pos.x}" cy="${pos.y}" r="3" />
                 <circle class="strike-marker" cx="${pos.x}" cy="${pos.y}" r="1.2" />
             </g>
@@ -528,6 +531,40 @@ function renderPersistentStrikes() {
 
     layers.forEach(layer => {
         layer.innerHTML = strikesHtml;
+    });
+
+    setupMapTooltips();
+}
+
+/**
+ * Map Tooltip Interaction Logic
+ */
+function setupMapTooltips() {
+    const tooltip = document.getElementById('map-tooltip');
+    const markers = document.querySelectorAll('.map-strike-persistent');
+
+    markers.forEach(marker => {
+        marker.onmouseenter = (e) => {
+            const title = marker.getAttribute('data-title');
+            const source = marker.getAttribute('data-source');
+
+            tooltip.innerHTML = `
+                <span class="tooltip-source">${source}</span>
+                <div class="tooltip-title">${title}</div>
+            `;
+            tooltip.style.display = 'block';
+            tooltip.style.opacity = '1';
+        };
+
+        marker.onmousemove = (e) => {
+            tooltip.style.left = (e.clientX + 15) + 'px';
+            tooltip.style.top = (e.clientY + 15) + 'px';
+        };
+
+        marker.onmouseleave = () => {
+            tooltip.style.display = 'none';
+            tooltip.style.opacity = '0';
+        };
     });
 }
 
