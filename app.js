@@ -1,5 +1,6 @@
 const NEWS_SOURCES = {
     fox: "https://moxie.foxnews.com/google-publisher/world.xml",
+    cnn: "https://news.google.com/rss/search?q=site:cnn.com+iran+israel+strike",
     abc: "https://abcnews.go.com/abcnews/internationalheadlines",
     jpost: "https://www.jpost.com/rss/rssfeedsfrontpage.aspx",
     toi: "https://www.timesofisrael.com/feed/",
@@ -72,14 +73,24 @@ async function fetchAllNews() {
 
     const fetchPromises = Object.entries(NEWS_SOURCES).map(async ([key, url]) => {
         try {
-            // Using allorigins proxy to bypass CORS and get raw XML
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-            const response = await fetch(proxyUrl);
-            const data = await response.json();
+            // Using corsproxy.io as primary for better XML support
+            const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+            let response = await fetch(proxyUrl);
+            let responseText = "";
 
-            if (data && data.contents) {
+            if (response.ok) {
+                responseText = await response.text();
+            } else {
+                // Secondary fallback to allorigins
+                const altProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                const altResponse = await fetch(altProxy);
+                const altData = await altResponse.json();
+                responseText = altData.contents;
+            }
+
+            if (responseText) {
                 const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                const xmlDoc = parser.parseFromString(responseText, "text/xml");
                 const items = xmlDoc.querySelectorAll("item");
 
                 return Array.from(items).map(item => {
