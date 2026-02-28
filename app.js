@@ -167,7 +167,10 @@ async function fetchAllNews() {
     allNews = results.flat().sort((a, b) => b.timestamp - a.timestamp);
 
     calculateEscalationIndex();
-    updateNarrativeSync();
+    renderNews();
+    renderNarrativeSync();
+    renderAccelerationIndex();
+    renderOrbitalBDA();
     processStrikeDetection();
 
     setNewsLoading(false);
@@ -290,6 +293,7 @@ function updateAlertUI(alertData) {
 
     // Pulse saturation on new alerts
     updateDefenseSaturation();
+    renderAccelerationIndex();
 
     // Limit to last 20 alerts
     const alerts = alertsContainer.querySelectorAll('.alert-item');
@@ -406,7 +410,7 @@ function calculateEscalationIndex() {
 /**
  * Narrative Sync Logic (Grouping)
  */
-function updateNarrativeSync() {
+function renderNarrativeSync() {
     const syncContainer = document.getElementById('narrative-sync-container');
     if (!syncContainer) return;
 
@@ -444,6 +448,37 @@ function updateNarrativeSync() {
         ? stagedGroups.join('')
         : '<div class="placeholder-text">Insufficient overlapping data for cross-source comparison.</div>';
 }
+
+/**
+ * Process strikes based on news content
+ */
+function processStrikeDetection() {
+    allNews.forEach(item => {
+        const content = (item.title + " " + item.description).toLowerCase();
+        if (STRIKE_KEYWORDS.some(k => content.includes(k))) {
+            // Find city
+            const city = Object.keys(CITY_COORDS).find(c => content.includes(c.toLowerCase()));
+            if (city) {
+                const isDuplicate = persistentStrikes.some(s => s.city === city && (item.timestamp - s.timestamp < 3600000));
+                if (!isDuplicate) {
+                    persistentStrikes.push({
+                        city,
+                        timestamp: item.timestamp,
+                        source: item.sourceName
+                    });
+                }
+            }
+        }
+    });
+
+    // Cleanup and Refresh
+    const now = Date.now();
+    const sixHours = 6 * 60 * 60 * 1000;
+    persistentStrikes = persistentStrikes.filter(s => (now - s.timestamp) < sixHours);
+    renderPersistentStrikes();
+    updateDefenseSaturation();
+}
+
 
 /**
  * Strike Map Logic (Geospatial Visualization)
@@ -721,16 +756,23 @@ function triggerMapPulse(city) {
  */
 function setupTabs() {
     const tabBtns = document.querySelectorAll('.tab-btn');
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.dataset.tab;
+    const tabContents = document.querySelectorAll('.tab-content');
 
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tabBtns.forEach(btn => {
+        btn.onclick = () => {
+            const target = btn.getAttribute('data-tab');
+
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
 
             btn.classList.add('active');
-            document.getElementById('tab-' + tabId).classList.add('active');
-        });
+            const targetEl = document.getElementById(target);
+            if (targetEl) targetEl.classList.add('active');
+
+            // Refresh specific tab logic
+            if (target === 'tab-bda') renderOrbitalBDA();
+            if (target === 'tab-quant') renderAccelerationIndex();
+        };
     });
 }
 
@@ -1133,4 +1175,122 @@ function updatePlaybackDisplay() {
     const now = Date.now();
     const playbackDate = new Date((now - ONE_DAY_MS) + (playbackTimeMinutes * 60 * 1000));
     timeDisplay.innerText = playbackDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * Orbital BDA (Satellite Recon) Logic
+ */
+function renderOrbitalBDA() {
+    const container = document.getElementById('bda-container');
+    if (!container) return;
+
+    if (persistentStrikes.length === 0) {
+        container.innerHTML = `<div class="nominal-status">No active reconnaissance targets. Acquire kinetic strike data to generate BDA.</div>`;
+        return;
+    }
+
+    const bdaHtml = persistentStrikes.map((strike, idx) => {
+        const coords = CITY_COORDS[strike.city] || { x: '??', y: '??' };
+        const satId = `USA-${100 + idx}-${Math.floor(Math.random() * 900)}`;
+        const time = new Date(strike.timestamp).toLocaleTimeString();
+
+        return `
+            <div class="bda-card glass-panel">
+                <div class="mono-viewport">
+                    <div class="sat-hud">
+                        <div style="display:flex; justify-content:space-between">
+                            <div class="sat-corner"></div>
+                            <div class="sat-meta-right">
+                                <div>SIGINT / ${satId}</div>
+                                <div>ELEV: 322KM</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-end">
+                            <div>
+                                <div>LAT: ${coords.x}.221N</div>
+                                <div>LNG: ${coords.y}.443E</div>
+                            </div>
+                            <div style="text-align:right">
+                                <div>ACQ: ${time}</div>
+                                <div style="font-weight:800; color:#fff">CONFIRMED HIT</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="width:100%; height:100%; background: radial-gradient(circle at center, #333, #000); opacity:0.3"></div>
+                </div>
+                <div class="bda-info">
+                    <div class="bda-title">${strike.city.toUpperCase()} BDA REPORT</div>
+                    <div class="bda-meta">ANALYSIS: High-confidence strike detected via ${strike.source}. Structural damage projected in ${strike.city}.</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = bdaHtml;
+}
+
+/**
+ * Acceleration Index (Predictive Analytics)
+ */
+function renderAccelerationIndex() {
+    const probFill = document.getElementById('quant-prob-fill');
+    const probVal = document.getElementById('quant-prob-val');
+    const threatEl = document.getElementById('quant-threat-level');
+    const flashList = document.getElementById('flashpoint-list');
+    const rhetoricChart = document.getElementById('rhetoric-chart');
+
+    if (!probFill || !allNews.length) return;
+
+    // Calculate Escalation Probability
+    const flashWords = ['escalation', 'retaliation', 'strike', 'nuclear', 'assassination', 'war', 'missile', 'uav', 'threat'];
+    let hits = 0;
+    allNews.forEach(a => {
+        const text = (a.title + a.description).toLowerCase();
+        flashWords.forEach(w => { if (text.includes(w)) hits++; });
+    });
+
+    const probability = Math.min(20 + (hits * 1.5), 98);
+    probFill.style.width = `${probability}%`;
+    probVal.innerText = `${Math.floor(probability)}%`;
+
+    if (probability > 80) {
+        threatEl.innerText = "CRITICAL: Widespread kinetic exchange imminent.";
+        threatEl.style.color = "var(--accent-red)";
+    } else if (probability > 50) {
+        threatEl.innerText = "HIGH: Regional tension accelerating rapidly.";
+        threatEl.style.color = "var(--accent-orange)";
+    } else {
+        threatEl.innerText = "STABLE: Conflict contained to established flashpoints.";
+        threatEl.style.color = "var(--accent-blue)";
+    }
+
+    // Flashpoint Predictor
+    const flashpoints = [
+        { loc: 'Beirut Southern Suburbs', prob: 72 },
+        { loc: 'Latakia Naval Base', prob: 58 },
+        { loc: 'Isfahan Enrichment Plant', prob: 45 },
+        { loc: 'Haifa Port Facilities', prob: 38 }
+    ];
+
+    flashList.innerHTML = flashpoints.map(f => `
+        <div class="prediction-item">
+            <div style="display:flex; justify-content:space-between">
+                <span>${f.loc}</span>
+                <span style="font-weight:800; color:var(--accent-blue)">${f.prob + Math.floor(hits / 2)}%</span>
+            </div>
+        </div>
+    `).join('');
+
+    // Rhetoric Monitor
+    const sources = ['fox', 'cnn', 'jpost', 'toi', 'abc'];
+    rhetoricChart.innerHTML = sources.map(s => {
+        const count = allNews.filter(a => a.sourceKey.toLowerCase().includes(s)).length;
+        const height = Math.min(count * 8, 100); // 8% per mention for scale
+        return `
+            <div class="rhetoric-bar-group">
+                <div class="rhetoric-bar ${height > 70 ? 'high' : ''}" style="height: ${height}%"></div>
+                <div class="rhetoric-label">${s}</div>
+            </div>
+        `;
+    }).join('');
 }

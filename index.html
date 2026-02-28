@@ -139,23 +139,13 @@
 
             <section class="content-primary">
                 <div class="tabs-container">
-                    <button class="tab-btn active" data-tab="live">Live Intelligence</button>
-                    <button class="tab-btn" data-tab="sync">Narrative Sync</button>
+                    <button class="tab-btn active" data-tab="tab-news">Intelligence Feed</button>
+                    <button class="tab-btn" data-tab="tab-sync">Narrative Sync</button>
+                    <button class="tab-btn" data-tab="tab-bda">Orbital BDA</button>
+                    <button class="tab-btn" data-tab="tab-quant">Acceleration Index</button>
                 </div>
 
-                <div id="tab-live" class="tab-content active">
-                    <div class="section-header">
-                        <h2>Latest Reports & Intelligence</h2>
-                        <div class="source-filters">
-                            <button class="filter-btn active" data-source="all">All</button>
-                            <button class="filter-btn" data-source="fox">Fox</button>
-                            <button class="filter-btn" data-source="cnn">CNN</button>
-                            <button class="filter-btn" data-source="cbs">CBS</button>
-                            <button class="filter-btn" data-source="abc">ABC</button>
-                            <button class="filter-btn" data-source="jpost">JPost</button>
-                            <button class="filter-btn" data-source="toi">TOI</button>
-                        </div>
-                    </div>
+                <div id="tab-news" class="tab-content active">
                     <div id="news-container" class="news-grid">
                         <div class="skeleton-card"></div>
                     </div>
@@ -163,10 +153,56 @@
 
                 <div id="tab-sync" class="tab-content">
                     <div class="section-header">
-                        <h2>Perspective Comparison</h2>
+                        <h2>Narrative Alignment</h2>
                     </div>
                     <div id="narrative-sync-container" class="sync-grid">
                         <div class="placeholder-text">Analyzing cross-source intelligence for narrative alignment...
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-bda" class="tab-content">
+                    <div class="section-header">
+                        <h2>Orbital Reconnaissance (BDA)</h2>
+                    </div>
+                    <div id="bda-container" class="bda-grid">
+                        <div class="nominal-status">No active reconnaissance targets. Acquire kinetic strike data to
+                            generate BDA.</div>
+                    </div>
+                </div>
+
+                <div id="tab-quant" class="tab-content">
+                    <div class="section-header">
+                        <h2>Acceleration Analytics</h2>
+                    </div>
+                    <div class="acceleration-dashboard glass-panel">
+                        <div class="quant-metrics">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <span class="label">Escalation Probability</span>
+                                    <span id="quant-prob-val" class="value">--%</span>
+                                </div>
+                                <div class="quant-gauge">
+                                    <div id="quant-prob-fill" class="gauge-fill"></div>
+                                </div>
+                                <div id="quant-threat-level" class="metric-note">Awaiting Analytics...</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <span class="label">Flashpoint Predictor</span>
+                                </div>
+                                <div id="flashpoint-list" class="prediction-list">
+                                    <div class="prediction-item">Calculating regional tension...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="rhetoric-monitor">
+                            <div class="metric-header">
+                                <span class="label">Rhetoric Intensity Monitor</span>
+                            </div>
+                            <div id="rhetoric-chart" class="rhetoric-chart-container">
+                                <!-- Dynamic rhetoric bars -->
+                            </div>
                         </div>
                     </div>
                 </div>
