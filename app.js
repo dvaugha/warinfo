@@ -395,26 +395,50 @@ function updateNarrativeSync() {
 }
 
 /**
- * Strike Map Logic
+ * Strike Map Logic (Geospatial Visualization)
  */
 const CITY_COORDS = {
-    'Tehran': { x: 80, y: 30 },
-    'Isfahan': { x: 75, y: 55 },
-    'Tel Aviv': { x: 25, y: 45 },
-    'Haifa': { x: 25, y: 35 },
-    'Beirut': { x: 28, y: 25 },
-    'Damascus': { x: 35, y: 30 }
+    'Tehran': { x: 70, y: 35, country: 'Iran' },
+    'Isfahan': { x: 65, y: 55, country: 'Iran' },
+    'Tel Aviv': { x: 22, y: 55, country: 'Israel' },
+    'Jerusalem': { x: 23, y: 56, country: 'Israel' },
+    'Haifa': { x: 22, y: 53, country: 'Israel' },
+    'Beirut': { x: 23, y: 50, country: 'Lebanon' },
+    'Damascus': { x: 26, y: 51, country: 'Syria' },
+    'Baghdad': { x: 45, y: 50, country: 'Iraq' }
 };
 
 function initMap() {
     const container = document.getElementById('strike-map-container');
     if (!container) return;
 
-    // Minimalist SVG regional map (simplified)
+    // Detailed minimalist regional map
+    // x: 0 (West Mediterranean) to 100 (East Iran)
+    // y: 0 (Black Sea / Caucasus) to 100 (Persian Gulf)
     container.innerHTML = `
         <svg class="map-svg" viewBox="0 0 100 100">
-            <!-- Simplified Landmass -->
-            <path d="M10,20 Q30,15 50,20 T90,30 L85,80 Q50,90 20,70 Z" />
+            <!-- Israel/Palestine/Jordan Landmass -->
+            <path class="map-land" d="M20,40 Q22,50 21,70 L25,72 Q27,60 25,42 Z" />
+            <!-- Lebanon/Syria Landmass -->
+            <path class="map-land" d="M22,40 Q25,35 30,38 L35,45 Q30,55 25,48 Z" />
+            <!-- Iraq Landmass -->
+            <path class="map-land" d="M30,45 Q40,40 55,45 L50,65 Q40,70 30,65 Z" />
+            <!-- Iran Landmass -->
+            <path class="map-land" d="M55,45 Q70,30 90,32 L95,60 Q80,85 55,75 Z" />
+            
+            <!-- Country Labels -->
+            <text x="21" y="65" class="map-country-label" transform="rotate(-90, 21, 65)">Israel/Palestine</text>
+            <text x="26" y="38" class="map-country-label" transform="rotate(20, 26, 38)">Syria</text>
+            <text x="40" y="58" class="map-country-label">Iraq</text>
+            <text x="75" y="55" class="map-country-label">Iran</text>
+
+            <g id="map-cities">
+                ${Object.entries(CITY_COORDS).map(([name, pos]) => `
+                    <circle cx="${pos.x}" cy="${pos.y}" r="0.6" class="map-city-dot" />
+                    <text x="${pos.x + 1.5}" y="${pos.y + 1}" class="map-city-label">${name}</text>
+                `).join('')}
+            </g>
+
             <g id="map-active-strikes"></g>
         </svg>
     `;
