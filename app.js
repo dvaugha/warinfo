@@ -1,4 +1,4 @@
-const NEWS_SOURCES = {
+﻿const NEWS_SOURCES = {
     fox: "https://moxie.foxnews.com/google-publisher/world.xml",
     cnn: "https://news.google.com/rss/search?q=site:cnn.com+iran+israel+strike",
     abc: "https://abcnews.go.com/abcnews/internationalheadlines",
@@ -13,13 +13,13 @@ const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 const RED_ALERT_SOCKET = "https://redalert.orielhaim.com";
 
 const ASSET_DATA = [
-    {id: 'csg-72', name: 'USS Abraham Lincoln (CVN-72)', type: 'navy', x: 92, y: 90, status: 'OPERATIONAL', mission: 'STRIKE / DETERRENCE'},
-    {id: 'sub-georgia', name: 'USS Georgia (SSGN-729)', type: 'navy', x: 12, y: 58, status: 'SUBMERGED', mission: 'GUIDED MISSILE SUPPORT'},
-    {id: 'b52-strat', name: 'B-52H Stratofortress Wing', type: 'air', x: 62, y: 88, status: 'READY', mission: 'LONG-RANGE DETERRANCE'},
-    {id: 'f35-squad', name: 'F-35I Adir Squadron', type: 'air', x: 21, y: 52, status: 'ACTIVE PATROL', mission: 'COMBAT AIR PATROL'},
-    {id: 'thaad-1', name: 'THAAD Battery Alpha', type: 'defense', x: 24, y: 57, status: 'ENGAGED', mission: 'BALLISTIC MISSILE DEFENSE'},
-    {id: 'arrow-3', name: 'Arrow-3 Strategic Def.', type: 'defense', x: 23, y: 55, status: 'OPERATIONAL', mission: 'EXO-ATMOSPHERIC DEFENSE'},
-    {id: 'isr-isra', name: 'RQ-4 Global Hawk', type: 'air', x: 68, y: 45, status: 'ELINT ACTIVE', mission: 'SURVEILLANCE'}
+    { id: 'csg-72', name: 'USS Abraham Lincoln (CVN-72)', type: 'navy', x: 92, y: 90, status: 'OPERATIONAL', mission: 'STRIKE / DETERRENCE' },
+    { id: 'sub-georgia', name: 'USS Georgia (SSGN-729)', type: 'navy', x: 12, y: 58, status: 'SUBMERGED', mission: 'GUIDED MISSILE SUPPORT' },
+    { id: 'b52-strat', name: 'B-52H Stratofortress Wing', type: 'air', x: 62, y: 88, status: 'READY', mission: 'LONG-RANGE DETERRANCE' },
+    { id: 'f35-squad', name: 'F-35I Adir Squadron', type: 'air', x: 21, y: 52, status: 'ACTIVE PATROL', mission: 'COMBAT AIR PATROL' },
+    { id: 'thaad-1', name: 'THAAD Battery Alpha', type: 'defense', x: 24, y: 57, status: 'ENGAGED', mission: 'BALLISTIC MISSILE DEFENSE' },
+    { id: 'arrow-3', name: 'Arrow-3 Strategic Def.', type: 'defense', x: 23, y: 55, status: 'OPERATIONAL', mission: 'EXO-ATMOSPHERIC DEFENSE' },
+    { id: 'isr-isra', name: 'RQ-4 Global Hawk', type: 'air', x: 68, y: 45, status: 'ELINT ACTIVE', mission: 'SURVEILLANCE' }
 ];
 
 let showAssets = false;
@@ -78,8 +78,6 @@ function escapeHTML(str) {
  */
 async function init() {
     startClock();
-    await fetchAllNews();
-    startAlertPolling();
     setupFilters();
     setupTabs();
     initMap();
@@ -89,6 +87,10 @@ async function init() {
     setupBDAModal();
     setupUpdateBtn();
     setupPlayback();
+
+    // Fetch news last so the UI is responsive immediately
+    await fetchAllNews();
+    startAlertPolling();
 }
 
 /**
@@ -111,70 +113,77 @@ async function fetchAllNews() {
     setNewsLoading(true);
     allNews = [];
 
-    const fetchPromises = Object.entries(NEWS_SOURCES).map(async ([key, url]) => {
-        try {
-            // Using corsproxy.io as primary for better XML support
-            const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-            let response = await fetch(proxyUrl);
-            let responseText = "";
+    try {
+        const fetchPromises = Object.entries(NEWS_SOURCES).map(async ([key, url]) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per source
 
-            if (response.ok) {
-                responseText = await response.text();
-} else {
-                // Secondary fallback to allorigins
-                const altProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-                const altResponse = await fetch(altProxy);
-                const altData = await altResponse.json();
-                responseText = altData.contents;
-}
+            try {
+                const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+                let response = await fetch(proxyUrl, { signal: controller.signal });
+                let responseText = "";
 
-            if (responseText) {
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(responseText, "text/xml");
-                const items = xmlDoc.querySelectorAll("item");
+                if (response.ok) {
+                    responseText = await response.text();
+                } else {
+                    const altProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                    const altResponse = await fetch(altProxy, { signal: controller.signal });
+                    const altData = await altResponse.json();
+                    responseText = altData.contents;
+                }
 
-                return Array.from(items).map(item => {
-                    const title = item.querySelector("title")?.textContent || "No Title";
-                    const link = item.querySelector("link")?.textContent || "#";
-                    const pubDate = item.querySelector("pubDate")?.textContent || new Date().toISOString();
-                    const description = item.querySelector("description")?.textContent || "";
+                clearTimeout(timeoutId);
 
-                    const newItem = {
-                        title,
-                        link,
-                        sourceKey: key,
-                        sourceName: key.toUpperCase(),
-                        timestamp: new Date(pubDate).getTime(),
-                        description: description.replace(/<[^>]*>?/gm, '').substring(0, 150) + "..."
-};
+                if (responseText) {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(responseText, "text/xml");
+                    const items = xmlDoc.querySelectorAll("item");
 
-                    if (isAdvertisement(newItem)) return null;
-                    if (!isWarRelated(newItem)) return null;
-                    if (isNaN(newItem.timestamp)) return null;
-                    if (newItem.title.length < 5) return null;
+                    return Array.from(items).map(item => {
+                        const title = item.querySelector("title")?.textContent || "No Title";
+                        const link = item.querySelector("link")?.textContent || "#";
+                        const pubDate = item.querySelector("pubDate")?.textContent || new Date().toISOString();
+                        const description = item.querySelector("description")?.textContent || "";
 
-                    return newItem;
-}).filter(item => item !== null);
-} else {
-                console.warn(`Source ${key} returned empty contents or was blocked.`);
-}
-} catch (error) {
-            console.error(`Error fetching ${key}:`, error);
-}
-        return [];
-});
+                        const newItem = {
+                            title,
+                            link,
+                            sourceKey: key,
+                            sourceName: key.toUpperCase(),
+                            timestamp: new Date(pubDate).getTime(),
+                            description: description.replace(/<[^>]*>?/gm, '').substring(0, 150) + "..."
+                        };
 
-    const results = await Promise.all(fetchPromises);
-    allNews = results.flat().sort((a, b) => b.timestamp-a.timestamp);
+                        if (isAdvertisement(newItem)) return null;
+                        if (!isWarRelated(newItem)) return null;
+                        if (isNaN(newItem.timestamp)) return null;
+                        if (newItem.title.length < 5) return null;
 
-    calculateEscalationIndex();
-    processStrikeDetection(); // Detect strikes FIRST
-    renderNews();
-    renderNarrativeSync();
-    renderAccelerationIndex();
-    renderOrbitalBDA();
+                        return newItem;
+                    }).filter(item => item !== null);
+                }
+            } catch (error) {
+                console.warn(`Source ${key} fetch skipped:`, error.name === 'AbortError' ? 'Timeout' : error);
+            } finally {
+                clearTimeout(timeoutId);
+            }
+            return [];
+        });
 
-    setNewsLoading(false);
+        const results = await Promise.all(fetchPromises);
+        allNews = results.flat().sort((a, b) => b.timestamp - a.timestamp);
+
+        calculateEscalationIndex();
+        processStrikeDetection();
+        renderNews();
+        renderNarrativeSync();
+        renderAccelerationIndex();
+        renderOrbitalBDA();
+    } catch (globalError) {
+        console.error("Critical dashboard update failure:", globalError);
+    } finally {
+        setNewsLoading(false);
+    }
 }
 
 /**
@@ -188,7 +197,7 @@ function renderNews() {
     if (filtered.length === 0) {
         newsContainer.innerHTML = '<div class="placeholder-text">No news articles found for this source.</div>';
         return;
-}
+    }
 
     newsContainer.innerHTML = filtered.map((item, index) => `
         <article class="news-card" data-index="${index}">
@@ -215,18 +224,18 @@ function startAlertPolling() {
         const socket = io(RED_ALERT_SOCKET, {
             transports: ['websocket'],
             reconnection: true
-});
+        });
 
         socket.on('connect', () => {
             console.log('Connected to RedAlert Real-Time Feed');
-});
+        });
 
         socket.on('alert', (data) => {
             console.log('Real-time alert received:', data);
             // RedAlert data format: {title: "...", data: ["city1", "city2"], category: 1}
             updateAlertUI(data);
-});
-}
+        });
+    }
 
     // 3. Fallback polling (every 10s) via secondary proxy for non-Israel users
     setInterval(fetchAlertHistory, 10000);
@@ -245,11 +254,11 @@ async function fetchAlertHistory() {
             const alerts = JSON.parse(data.contents);
             if (alerts && alerts.data && alerts.data.length > 0) {
                 updateAlertUI(alerts);
-}
-}
-} catch (error) {
+            }
+        }
+    } catch (error) {
         console.warn("History fetch failed:", error);
-}
+    }
 }
 
 /**
@@ -264,14 +273,16 @@ async function fetchAlerts() {
  */
 function updateAlertUI(alertData) {
     if (!alertData || !alertData.data || alertData.data.length === 0) {
-        // If it's the initial call and still nominal, show status but clear syncing
         if (alertsContainer.querySelector('.placeholder-text')) {
             alertsContainer.innerHTML = '<div class="nominal-status">No active threats detected in the region.</div>';
-}
+        }
         defenseStatus.innerText = "NOMINAL";
         defenseStatus.className = "value nominal";
         return;
-}
+    }
+
+    // Trigger map effect for ALL cities in the alert
+    alertData.data.forEach(city => triggerMapPulse(city));
 
     defenseStatus.innerText = "ACTIVE ALERTS";
     defenseStatus.className = "value alert pulse-text";
@@ -300,8 +311,8 @@ function updateAlertUI(alertData) {
     if (alerts.length > 20) {
         for (let i = 20; i < alerts.length; i++) {
             alerts[i].remove();
-}
-}
+        }
+    }
 }
 
 /**
@@ -314,14 +325,16 @@ function setupFilters() {
             btn.classList.add('active');
             currentSource = btn.dataset.source;
             renderNews();
-});
-});
+        });
+    });
 }
 
 function setNewsLoading(isLoading) {
     if (isLoading) {
         newsContainer.innerHTML = '<div class="skeleton-card"></div>'.repeat(6);
-}
+    } else if (allNews.length === 0) {
+        newsContainer.innerHTML = '<div class="placeholder-text">Waiting for news from regional sources...</div>';
+    }
 }
 
 /**
@@ -332,15 +345,15 @@ function isAdvertisement(item) {
     // Check for common ad keywords
     if (AD_KEYWORDS.some(keyword => content.includes(keyword))) {
         return true;
-}
+    }
     // Check for extremely short content which often precedes ads
     if (item.description.length < 20 && !item.title.toLowerCase().includes("breaking")) {
         return true;
-}
+    }
     // Filter out items that are just links to shop or subscribe
     if (item.link.includes("/shop/") || item.link.includes("/subscribe")) {
         return true;
-}
+    }
     return false;
 }
 
@@ -361,7 +374,7 @@ function isWarRelated(item) {
     // Or if it's from JPost/TOI/AlJazeera which are inherently regional
     if (["JPOST", "TOI", "ALJAZEERA"].includes(item.sourceName)) {
         return (hasLocation && hasConflict) || hasStrongMatches || content.includes("strike") || content.includes("missile");
-}
+    }
 
     return (hasLocation && hasConflict) || hasStrongMatches;
 }
@@ -377,14 +390,14 @@ function calculateEscalationIndex() {
         'iran': 2, 'israel': 2, 'idf': 2, 'irgc': 2,
         'strike': 4, 'missile': 5, 'attack': 4, 'war': 6,
         'nuclear': 10, 'ballistic': 8, 'casualty': 7, 'explosion': 4
-};
+    };
 
     recentNews.forEach(item => {
         const content = (item.title + " " + item.description).toLowerCase();
         Object.entries(weights).forEach(([word, weight]) => {
             if (content.includes(word)) totalScore += weight;
-});
-});
+        });
+    });
 
     // Normalize to 0-100 range (rough estimation)
     const normalizedScore = Math.min(Math.round((totalScore / 150) * 100), 100);
@@ -399,12 +412,12 @@ function calculateEscalationIndex() {
         // Color based on severity
         if (normalizedScore > 75) {
             valueDisp.style.color = '#ff3b3b';
-} else if (normalizedScore > 40) {
+        } else if (normalizedScore > 40) {
             valueDisp.style.color = '#ff9500';
-} else {
+        } else {
             valueDisp.style.color = '#34c759';
-}
-}
+        }
+    }
 }
 
 /**
@@ -416,9 +429,9 @@ function renderNarrativeSync() {
 
     // Simplified grouping: Find common key names in titles
     const topics = [
-        {name: 'Tehran Strikes', keys: ['tehran', 'strike', 'explosion']},
-        {name: 'Northern Border', keys: ['lebanon', 'hezbollah', 'north']},
-        {name: 'Missile Defense', keys: ['interception', 'arrow', 'sling', 'missile']}
+        { name: 'Tehran Strikes', keys: ['tehran', 'strike', 'explosion'] },
+        { name: 'Northern Border', keys: ['lebanon', 'hezbollah', 'north'] },
+        { name: 'Missile Defense', keys: ['interception', 'arrow', 'sling', 'missile'] }
     ];
 
     const stagedGroups = topics.map(topic => {
@@ -442,7 +455,7 @@ function renderNarrativeSync() {
                 </div>
             </div>
         `;
-}).filter(Boolean);
+    }).filter(Boolean);
 
     syncContainer.innerHTML = stagedGroups.length > 0
         ? stagedGroups.join('')
@@ -456,17 +469,17 @@ function renderNarrativeSync() {
  * Strike Map Logic (Geospatial Visualization)
  */
 const CITY_COORDS = {
-    'Tehran': {x: 78, y: 35, country: 'Iran'},
-    'Isfahan': {x: 74, y: 52, country: 'Iran'},
-    'Tel Aviv': {x: 18, y: 55, country: 'Israel'},
-    'Jerusalem': {x: 19, y: 56, country: 'Israel'},
-    'Haifa': {x: 18, y: 53, country: 'Israel'},
-    'Beirut': {x: 19, y: 49, country: 'Lebanon'},
-    'Damascus': {x: 23, y: 50, country: 'Syria'},
-    'Baghdad': {x: 48, y: 48, country: 'Iraq'},
-    'Amman': {x: 22, y: 58, country: 'Jordan'},
-    'Riyadh': {x: 55, y: 75, country: 'Saudi Arabia'},
-    'Cairo': {x: 5, y: 65, country: 'Egypt'}
+    'Tehran': { x: 78, y: 35, country: 'Iran' },
+    'Isfahan': { x: 74, y: 52, country: 'Iran' },
+    'Tel Aviv': { x: 18, y: 55, country: 'Israel' },
+    'Jerusalem': { x: 19, y: 56, country: 'Israel' },
+    'Haifa': { x: 18, y: 53, country: 'Israel' },
+    'Beirut': { x: 19, y: 49, country: 'Lebanon' },
+    'Damascus': { x: 23, y: 50, country: 'Syria' },
+    'Baghdad': { x: 48, y: 48, country: 'Iraq' },
+    'Amman': { x: 22, y: 58, country: 'Jordan' },
+    'Riyadh': { x: 55, y: 75, country: 'Saudi Arabia' },
+    'Cairo': { x: 5, y: 65, country: 'Egypt' }
 };
 
 function initMap() {
@@ -492,7 +505,7 @@ function initMap() {
             
             <!-- Strategic Grid -->
             <g class="map-grid">
-                ${Array.from({length: 11}).map((_, i) => `
+                ${Array.from({ length: 11 }).map((_, i) => `
                     <line x1="${i * 10}" y1="0" x2="${i * 10}" y2="100" class="map-coordinate-line" />
                     <line x1="0" y1="${i * 10}" x2="100" y2="${i * 10}" class="map-coordinate-line" />
                 `).join('')}
@@ -569,8 +582,8 @@ function initMap() {
     containers.forEach(container => {
         if (container) {
             container.innerHTML = mapHtml;
-}
-});
+        }
+    });
 
     // Once HTML is in place, render layers
     renderPersistentStrikes();
@@ -592,7 +605,7 @@ function processStrikeDetection() {
             const cityMatch = Object.keys(CITY_COORDS).find(city => content.includes(city.toLowerCase()));
             if (cityMatch) {
                 const isDuplicate = persistentStrikes.some(s =>
-                    s.city === cityMatch && Math.abs(s.timestamp-item.timestamp) < (60 * 60 * 1000)
+                    s.city === cityMatch && Math.abs(s.timestamp - item.timestamp) < (60 * 60 * 1000)
                 );
                 if (!isDuplicate) {
                     persistentStrikes.push({
@@ -601,27 +614,27 @@ function processStrikeDetection() {
                         source: item.sourceName,
                         timestamp: item.timestamp,
                         id: `strike-${item.timestamp}`
-});
+                    });
                     updateAlertUI({
                         title: "CONFIRMED STRIKE / EXPLOSION",
                         data: [cityMatch],
                         timestamp: item.timestamp,
                         isIntel: true
-});
-}
-}
-}
-});
+                    });
+                }
+            }
+        }
+    });
 
     // If still empty, add historical samples for UI immersion
     if (persistentStrikes.length === 0) {
         persistentStrikes.push(
-            {city: 'Tehran', timestamp: Date.now()-(3600000 * 2), source: 'INTEL PRESET'},
-            {city: 'Beirut', timestamp: Date.now()-(3600000 * 4), source: 'INTEL PRESET'}
+            { city: 'Tehran', timestamp: Date.now() - (3600000 * 2), source: 'INTEL PRESET' },
+            { city: 'Beirut', timestamp: Date.now() - (3600000 * 4), source: 'INTEL PRESET' }
         );
-}
+    }
 
-    persistentStrikes = persistentStrikes.filter(s => (now-s.timestamp) < sixHours);
+    persistentStrikes = persistentStrikes.filter(s => (now - s.timestamp) < sixHours);
     renderPersistentStrikes();
     updateDefenseSaturation();
 }
@@ -632,7 +645,7 @@ function renderPersistentStrikes() {
 
     const now = Date.now();
     const cutoffTime = isPlaybackMode
-        ? (now-ONE_DAY_MS) + (playbackTimeMinutes * 60 * 1000)
+        ? (now - ONE_DAY_MS) + (playbackTimeMinutes * 60 * 1000)
         : now;
 
     const strikesHtml = persistentStrikes
@@ -642,9 +655,9 @@ function renderPersistentStrikes() {
             if (!pos) return '';
 
             // Fade based on age relative to scrubber or now
-            const age = cutoffTime-strike.timestamp;
+            const age = cutoffTime - strike.timestamp;
             const sixHours = 6 * 60 * 60 * 1000;
-            const opacity = Math.max(0.2, 1-(age / sixHours));
+            const opacity = Math.max(0.2, 1 - (age / sixHours));
 
             return `
                 <g class="map-strike-persistent" 
@@ -655,11 +668,11 @@ function renderPersistentStrikes() {
                     <circle class="strike-marker" cx="${pos.x}" cy="${pos.y}" r="1.2" />
                 </g>
             `;
-}).join('');
+        }).join('');
 
     layers.forEach(layer => {
         layer.innerHTML = strikesHtml;
-});
+    });
 
     setupMapTooltips();
 }
@@ -682,25 +695,25 @@ function setupMapTooltips() {
             `;
             tooltip.style.display = 'block';
             tooltip.style.opacity = '1';
-};
+        };
 
         marker.onmousemove = (e) => {
             tooltip.style.left = (e.clientX + 15) + 'px';
             tooltip.style.top = (e.clientY + 15) + 'px';
-};
+        };
 
         marker.onmouseleave = () => {
             tooltip.style.display = 'none';
             tooltip.style.opacity = '0';
-};
-});
+        };
+    });
 }
 
 function triggerMapPulse(city) {
     const strikeLayers = document.querySelectorAll('.map-active-strikes-layer');
     if (strikeLayers.length === 0) return;
 
-    const coords = CITY_COORDS[city] || {x: Math.random() * 80 + 10, y: Math.random() * 70 + 10};
+    const coords = CITY_COORDS[city] || { x: Math.random() * 80 + 10, y: Math.random() * 70 + 10 };
 
     const pulseHtml = `
         <circle class="strike-point" cx="${coords.x}" cy="${coords.y}" r="1.5" />
@@ -716,7 +729,7 @@ function triggerMapPulse(city) {
         g.innerHTML = pulseHtml;
         layer.appendChild(g);
         setTimeout(() => g.remove(), 2500);
-});
+    });
 }
 
 /**
@@ -740,8 +753,8 @@ function setupTabs() {
             // Refresh specific tab logic
             if (target === 'tab-bda') renderOrbitalBDA();
             if (target === 'tab-quant') renderAccelerationIndex();
-};
-});
+        };
+    });
 }
 
 /**
@@ -756,28 +769,19 @@ function setupFullscreenMap() {
         expandBtn.addEventListener('click', () => {
             overlay.classList.add('active');
             document.body.style.overflow = 'hidden';
-});
-}
+        });
+    }
 
     if (closeBtn && overlay) {
         closeBtn.addEventListener('click', () => {
             overlay.classList.remove('active');
             document.body.style.overflow = 'auto';
-});
-}
+        });
+    }
 }
 
-// Intercept alert UI to trigger map pulse
-const originalUpdateUI = updateAlertUI;
-updateAlertUI = function (data) {
-    if (originalUpdateUI) originalUpdateUI(data);
-    if (data && data.data) {
-        data.data.forEach(city => triggerMapPulse(city));
-}
-};
-
-// Start the app
-init();
+// Start the app at the very end
+// init() removed from here
 
 /**
  * Article Summary Overlay Controls
@@ -790,8 +794,8 @@ function setupArticleOverlay() {
         closeBtn.addEventListener('click', () => {
             overlay.classList.remove('active');
             document.body.style.overflow = 'auto';
-});
-}
+        });
+    }
 
     // Event Delegation for News Cards (CSP Compliant)
     if (newsContainer) {
@@ -801,10 +805,10 @@ function setupArticleOverlay() {
                 const index = parseInt(card.dataset.index);
                 if (!isNaN(index)) {
                     openArticleSummary(index);
-}
-}
-});
-}
+                }
+            }
+        });
+    }
 }
 
 function openArticleSummary(index) {
@@ -843,7 +847,7 @@ function openArticleSummary(index) {
 
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden';
-}
+    }
 }
 
 /**
@@ -864,12 +868,12 @@ function generateCliffNotes(text) {
                 // Split long sentences at certain markers to create more bullet points
                 const subs = point.split(/, and |, but |, as |; /i);
                 expandedPoints.push(...subs);
-} else {
+            } else {
                 expandedPoints.push(point);
-}
-});
+            }
+        });
         points = expandedPoints.map(p => p.trim()).filter(p => p.length > 10);
-}
+    }
 
     // 3. Cleanup: Remove trailing punctuation for a cleaner "note" look
     points = points.map(p => p.replace(/[.!?]$/, ''));
@@ -879,7 +883,7 @@ function generateCliffNotes(text) {
     if (points.length < 3 && points.length > 0) {
         // Fallback for very short articles: just take what we have
         return points;
-}
+    }
 
     return points.length >= 3 ? points.slice(0, 5) : points;
 }
@@ -903,13 +907,13 @@ function setupUpdateBtn() {
                 setTimeout(() => {
                     btn.classList.remove('loading');
                     btn.querySelector('.refresh-icon').style.transform = '';
-}, 1000);
-} catch (err) {
+                }, 1000);
+            } catch (err) {
                 console.error("Manual refresh fail:", err);
                 btn.classList.remove('loading');
-}
-};
-}
+            }
+        };
+    }
 }
 function setupAssetControls() {
     const btn = document.getElementById('toggle-assets-btn');
@@ -919,8 +923,8 @@ function setupAssetControls() {
             btn.classList.toggle('active');
             btn.innerText = showAssets ? 'HIDE ASSETS' : 'SHOW ASSETS';
             renderAssets();
-};
-}
+        };
+    }
 }
 
 function renderAssets() {
@@ -930,14 +934,14 @@ function renderAssets() {
     if (!showAssets) {
         layers.forEach(l => l.innerHTML = '');
         return;
-}
+    }
 
     const assetsHtml = ASSET_DATA.map(asset => {
-        let symbol = '◈'; // Defense
+        let symbol = 'â—ˆ'; // Defense
         let className = 'asset-defense';
 
-        if (asset.type === 'navy') {symbol = '⬙'; className = 'asset-navy';}
-        if (asset.type === 'air') {symbol = '✈'; className = 'asset-air';}
+        if (asset.type === 'navy') { symbol = 'â¬™'; className = 'asset-navy'; }
+        if (asset.type === 'air') { symbol = 'âœˆ'; className = 'asset-air'; }
 
         return `
             <g class="asset-icon-group" data-id="${asset.id}" data-type="${asset.type}" 
@@ -946,15 +950,15 @@ function renderAssets() {
                 
                 ${asset.type === 'air' ? `<circle cx="${asset.x}" cy="${asset.y}" r="4" fill="none" stroke="rgba(52, 199, 89, 0.2)" stroke-dasharray="1,1" class="asset-orbit" />` : ''}
 
-                <rect class="asset-main ${className}" x="${asset.x-1.5}" y="${asset.y-1.5}" width="3" height="3" rx="0.5" />
+                <rect class="asset-main ${className}" x="${asset.x - 1.5}" y="${asset.y - 1.5}" width="3" height="3" rx="0.5" />
                 <text x="${asset.x}" y="${asset.y + 0.8}" class="asset-label" text-anchor="middle">${symbol}</text>
             </g>
         `;
-}).join('');
+    }).join('');
 
     layers.forEach(layer => {
         layer.innerHTML = assetsHtml;
-});
+    });
 
     setupAssetTooltips();
 }
@@ -977,17 +981,17 @@ function setupAssetTooltips() {
             `;
             tooltip.style.display = 'block';
             tooltip.style.opacity = '1';
-};
+        };
 
         icon.onmousemove = (e) => {
             tooltip.style.left = (e.clientX + 15) + 'px';
             tooltip.style.top = (e.clientY + 15) + 'px';
-};
+        };
 
         icon.onmouseleave = () => {
             tooltip.style.display = 'none';
-};
-});
+        };
+    });
 }
 
 /**
@@ -1000,8 +1004,8 @@ function setupBDAModal() {
     if (closeBtn && overlay) {
         closeBtn.onclick = () => {
             overlay.classList.remove('active');
-};
-}
+        };
+    }
 }
 
 function openBDAModal(strike, coords, satId, time, img) {
@@ -1089,16 +1093,16 @@ function updateDefenseSaturation() {
             label.innerText = "SATURATION WARNING";
             label.className = "status-badge alert pulse-text";
             widget.classList.add('saturation-warning');
-} else if (load > 40) {
+        } else if (load > 40) {
             label.innerText = "HIGH LOAD";
             label.className = "status-badge alert";
             widget.classList.remove('saturation-warning');
-} else {
+        } else {
             label.innerText = "STABLE";
             label.className = "status-badge nominal";
             widget.classList.remove('saturation-warning');
-}
-}
+        }
+    }
 }
 
 function updateBatteryStatus(sysId, status) {
@@ -1112,8 +1116,8 @@ function updateBatteryStatus(sysId, status) {
             if (status.includes('READY') || status.includes('STANDBY')) statusEl.classList.add('status-nominal');
             else if (status.includes('INTERCEPT') || status.includes('LOAD')) statusEl.classList.add('status-high');
             else statusEl.classList.add('status-saturation');
-}
-});
+        }
+    });
 }
 
 /**
@@ -1134,31 +1138,31 @@ function setupPlayback() {
         isPlaybackPlaying = false;
         playbackTimeMinutes = parseInt(e.target.value);
         syncBtn.classList.remove('active');
-        playBtn.innerText = "▶";
+        playBtn.innerText = "â–¶";
         updatePlaybackDisplay();
         renderPersistentStrikes();
-};
+    };
 
     playBtn.onclick = () => {
         if (playbackTimeMinutes >= 1440) playbackTimeMinutes = 0; // Reset if at end
         isPlaybackMode = true;
         isPlaybackPlaying = !isPlaybackPlaying;
         syncBtn.classList.remove('active');
-        playBtn.innerText = isPlaybackPlaying ? "⏸" : "▶";
+        playBtn.innerText = isPlaybackPlaying ? "â¸" : "â–¶";
         if (isPlaybackPlaying) startPlaybackLoop();
         else stopPlaybackLoop();
-};
+    };
 
     if (prevBtn) {
         prevBtn.onclick = () => {
             isPlaybackMode = true;
-            playbackTimeMinutes = Math.max(0, playbackTimeMinutes-30);
+            playbackTimeMinutes = Math.max(0, playbackTimeMinutes - 30);
             slider.value = playbackTimeMinutes;
             syncBtn.classList.remove('active');
             updatePlaybackDisplay();
             renderPersistentStrikes();
-};
-}
+        };
+    }
 
     if (nextBtn) {
         nextBtn.onclick = () => {
@@ -1170,9 +1174,9 @@ function setupPlayback() {
                 syncBtn.classList.remove('active');
                 updatePlaybackDisplay();
                 renderPersistentStrikes();
-}
-};
-}
+            }
+        };
+    }
 
     syncBtn.onclick = () => {
         isPlaybackMode = false;
@@ -1180,11 +1184,11 @@ function setupPlayback() {
         playbackTimeMinutes = 1440;
         slider.value = 1440;
         syncBtn.classList.add('active');
-        playBtn.innerText = "▶";
+        playBtn.innerText = "â–¶";
         timeDisplay.innerText = "LIVE";
         stopPlaybackLoop();
         renderPersistentStrikes();
-};
+    };
 }
 
 function startPlaybackLoop() {
@@ -1196,11 +1200,11 @@ function startPlaybackLoop() {
             slider.value = playbackTimeMinutes;
             updatePlaybackDisplay();
             renderPersistentStrikes();
-} else {
+        } else {
             stopPlaybackLoop();
-            document.getElementById('playback-play').innerText = "▶";
-}
-}, 100);
+            document.getElementById('playback-play').innerText = "â–¶";
+        }
+    }, 100);
 }
 
 function stopPlaybackLoop() {
@@ -1210,8 +1214,8 @@ function stopPlaybackLoop() {
 function updatePlaybackDisplay() {
     const timeDisplay = document.getElementById('playback-time');
     const now = Date.now();
-    const playbackDate = new Date((now-ONE_DAY_MS) + (playbackTimeMinutes * 60 * 1000));
-    timeDisplay.innerText = playbackDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    const playbackDate = new Date((now - ONE_DAY_MS) + (playbackTimeMinutes * 60 * 1000));
+    timeDisplay.innerText = playbackDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 /**
@@ -1224,10 +1228,10 @@ function renderOrbitalBDA() {
     if (persistentStrikes.length === 0) {
         container.innerHTML = `<div class="nominal-status">No active reconnaissance targets. Acquire kinetic strike data to generate BDA.</div>`;
         return;
-}
+    }
 
     const bdaHtml = persistentStrikes.map((strike, idx) => {
-        const coords = CITY_COORDS[strike.city] || {x: '??', y: '??'};
+        const coords = CITY_COORDS[strike.city] || { x: '??', y: '??' };
         const satId = `USA-${100 + idx}-${Math.floor(Math.random() * 900)}`;
         const time = new Date(strike.timestamp).toLocaleTimeString();
 
@@ -1262,8 +1266,8 @@ function renderOrbitalBDA() {
                     <div class="bda-title">${strike.city.toUpperCase()} BDA REPORT</div>
                     <div class="bda-meta">ANALYSIS: High-confidence strike detected via ${strike.source}. Structural damage projected in ${strike.city}.</div>
                 </div>
-            </div>
-}).join('');
+            </div>`;
+    }).join('');
 
     container.innerHTML = bdaHtml;
 
@@ -1272,8 +1276,8 @@ function renderOrbitalBDA() {
     cards.forEach((card, i) => {
         card.onclick = () => {
             const strike = persistentStrikes[i];
-            const coords = CITY_COORDS[strike.city] || {x: '??', y: '??'};
-            const satId = `USA-${100 + i} -${Math.floor(Math.random() * 900)} `;
+            const coords = CITY_COORDS[strike.city] || { x: '??', y: '??' };
+            const satId = `USA-${100 + i}-${Math.floor(Math.random() * 900)}`;
             const time = new Date(strike.timestamp).toLocaleTimeString();
 
             let reconImg = "recon/isra.png";
@@ -1281,8 +1285,8 @@ function renderOrbitalBDA() {
             if (strike.city.toLowerCase() === "beirut") reconImg = "recon/beirut.png";
 
             openBDAModal(strike, coords, satId, time, reconImg);
-};
-});
+        };
+    });
 }
 
 /**
@@ -1302,40 +1306,40 @@ function renderAccelerationIndex() {
     let hits = 0;
     allNews.forEach(a => {
         const text = (a.title + a.description).toLowerCase();
-        flashWords.forEach(w => {if (text.includes(w)) hits++;});
-});
+        flashWords.forEach(w => { if (text.includes(w)) hits++; });
+    });
 
     const probability = Math.min(20 + (hits * 1.5), 98);
-    probFill.style.width = `${probability}% `;
-    probVal.innerText = `${Math.floor(probability)}% `;
+    probFill.style.width = `${probability}%`;
+    probVal.innerText = `${Math.floor(probability)}%`;
 
     if (probability > 80) {
         threatEl.innerText = "CRITICAL: Widespread kinetic exchange imminent.";
         threatEl.style.color = "var(--accent-red)";
-} else if (probability > 50) {
+    } else if (probability > 50) {
         threatEl.innerText = "HIGH: Regional tension accelerating rapidly.";
         threatEl.style.color = "var(--accent-orange)";
-} else {
+    } else {
         threatEl.innerText = "STABLE: Conflict contained to established flashpoints.";
         threatEl.style.color = "var(--accent-blue)";
-}
+    }
 
     // Flashpoint Predictor
     const flashpoints = [
-        {loc: 'Beirut Southern Suburbs', prob: 72},
-        {loc: 'Latakia Naval Base', prob: 58},
-        {loc: 'Isfahan Enrichment Plant', prob: 45},
-        {loc: 'Haifa Port Facilities', prob: 38}
+        { loc: 'Beirut Southern Suburbs', prob: 72 },
+        { loc: 'Latakia Naval Base', prob: 58 },
+        { loc: 'Isfahan Enrichment Plant', prob: 45 },
+        { loc: 'Haifa Port Facilities', prob: 38 }
     ];
 
     flashList.innerHTML = flashpoints.map(f => `
-            <div class="prediction-item" >
-                <div style="display:flex; justify-content:space-between">
-                    <span>${f.loc}</span>
-                    <span style="font-weight:800; color:var(--accent-blue)">${f.prob + Math.floor(hits / 2)}%</span>
-                </div>
+        <div class="prediction-item">
+            <div style="display:flex; justify-content:space-between">
+                <span>${f.loc}</span>
+                <span style="font-weight:800; color:var(--accent-blue)">${f.prob + Math.floor(hits / 2)}%</span>
+            </div>
         </div>
-        `).join('');
+    `).join('');
 
     // Rhetoric Monitor
     const sources = ['fox', 'cnn', 'jpost', 'toi', 'abc'];
@@ -1343,10 +1347,13 @@ function renderAccelerationIndex() {
         const count = allNews.filter(a => a.sourceKey.toLowerCase().includes(s)).length;
         const height = Math.min(count * 8, 100); // 8% per mention for scale
         return `
-        <div class="rhetoric-bar-group" >
+            <div class="rhetoric-bar-group">
                 <div class="rhetoric-bar ${height > 70 ? 'high' : ''}" style="height: ${height}%"></div>
                 <div class="rhetoric-label">${s}</div>
             </div>
         `;
-}).join('');
+    }).join('');
 }
+
+// Global System Start
+init();
