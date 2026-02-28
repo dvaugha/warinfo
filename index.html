@@ -58,6 +58,20 @@
                         <!-- SVG Map goes here -->
                         <div class="map-placeholder">Initializing Geospatial Data...</div>
                     </div>
+                    <div class="playback-controls">
+                        <div class="playback-header">
+                            <span class="label">KINETIC PLAYBACK (24H)</span>
+                            <span id="playback-time" class="value">LIVE</span>
+                        </div>
+                        <div class="playback-bar-container">
+                            <button id="playback-prev" class="play-btn">|◀</button>
+                            <button id="playback-play" class="play-btn">▶</button>
+                            <input type="range" id="playback-slider" min="0" max="1440" value="1440"
+                                class="time-slider">
+                            <button id="playback-next" class="play-btn">▶|</button>
+                            <button id="playback-live" class="icon-btn live-sync active">SYNC LIVE</button>
+                        </div>
+                    </div>
                 </section>
 
                 <section class="alerts-section">

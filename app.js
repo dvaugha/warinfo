@@ -24,6 +24,13 @@ const ASSET_DATA = [
 
 let showAssets = false;
 
+// Playback State
+let isPlaybackMode = false;
+let isPlaybackPlaying = false;
+let playbackTimeMinutes = 1440; // 24 hours in minutes (End of bar)
+let playbackInterval = null;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 // Blocklist for keywords commonly found in RSS ads/promos
 const AD_KEYWORDS = [
     "sponsored", "advertisement", "promotion", "subscribe", "shop",
@@ -80,6 +87,7 @@ async function init() {
     setupArticleOverlay();
     setupAssetControls();
     setupUpdateBtn();
+    setupPlayback();
 }
 
 /**
@@ -584,19 +592,32 @@ function renderPersistentStrikes() {
     const layers = document.querySelectorAll('.map-persistent-strikes');
     if (!layers.length) return;
 
-    const strikesHtml = persistentStrikes.map(strike => {
-        const pos = CITY_COORDS[strike.city];
-        if (!pos) return '';
+    const now = Date.now();
+    const cutoffTime = isPlaybackMode
+        ? (now - ONE_DAY_MS) + (playbackTimeMinutes * 60 * 1000)
+        : now;
 
-        return `
-            <g class="map-strike-persistent" 
-               data-title="${escapeHTML(strike.title)}" 
-               data-source="${escapeHTML(strike.source)}">
-                <circle class="strike-glow" cx="${pos.x}" cy="${pos.y}" r="3" />
-                <circle class="strike-marker" cx="${pos.x}" cy="${pos.y}" r="1.2" />
-            </g>
-        `;
-    }).join('');
+    const strikesHtml = persistentStrikes
+        .filter(strike => strike.timestamp <= cutoffTime) // Only show strikes before scrubber
+        .map(strike => {
+            const pos = CITY_COORDS[strike.city];
+            if (!pos) return '';
+
+            // Fade based on age relative to scrubber or now
+            const age = cutoffTime - strike.timestamp;
+            const sixHours = 6 * 60 * 60 * 1000;
+            const opacity = Math.max(0.2, 1 - (age / sixHours));
+
+            return `
+                <g class="map-strike-persistent" 
+                   style="opacity: ${opacity}"
+                   data-title="${escapeHTML(strike.title)}" 
+                   data-source="${escapeHTML(strike.source)}">
+                    <circle class="strike-glow" cx="${pos.x}" cy="${pos.y}" r="3" />
+                    <circle class="strike-marker" cx="${pos.x}" cy="${pos.y}" r="1.2" />
+                </g>
+            `;
+        }).join('');
 
     layers.forEach(layer => {
         layer.innerHTML = strikesHtml;
@@ -979,4 +1000,102 @@ function updateBatteryStatus(sysId, status) {
             else statusEl.classList.add('status-saturation');
         }
     });
+}
+
+/**
+ * Kinetic Playback Scrubber Logic
+ */
+function setupPlayback() {
+    const slider = document.getElementById('playback-slider');
+    const playBtn = document.getElementById('playback-play');
+    const syncBtn = document.getElementById('playback-live');
+    const timeDisplay = document.getElementById('playback-time');
+    const prevBtn = document.getElementById('playback-prev');
+    const nextBtn = document.getElementById('playback-next');
+
+    if (!slider || !playBtn || !syncBtn || !timeDisplay) return;
+
+    slider.oninput = (e) => {
+        isPlaybackMode = true;
+        isPlaybackPlaying = false;
+        playbackTimeMinutes = parseInt(e.target.value);
+        syncBtn.classList.remove('active');
+        playBtn.innerText = "▶";
+        updatePlaybackDisplay();
+        renderPersistentStrikes();
+    };
+
+    playBtn.onclick = () => {
+        if (playbackTimeMinutes >= 1440) playbackTimeMinutes = 0; // Reset if at end
+        isPlaybackMode = true;
+        isPlaybackPlaying = !isPlaybackPlaying;
+        syncBtn.classList.remove('active');
+        playBtn.innerText = isPlaybackPlaying ? "⏸" : "▶";
+        if (isPlaybackPlaying) startPlaybackLoop();
+        else stopPlaybackLoop();
+    };
+
+    if (prevBtn) {
+        prevBtn.onclick = () => {
+            isPlaybackMode = true;
+            playbackTimeMinutes = Math.max(0, playbackTimeMinutes - 30);
+            slider.value = playbackTimeMinutes;
+            syncBtn.classList.remove('active');
+            updatePlaybackDisplay();
+            renderPersistentStrikes();
+        };
+    }
+
+    if (nextBtn) {
+        nextBtn.onclick = () => {
+            isPlaybackMode = true;
+            playbackTimeMinutes = Math.min(1440, playbackTimeMinutes + 30);
+            slider.value = playbackTimeMinutes;
+            if (playbackTimeMinutes >= 1440) syncBtn.onclick(); // Sync live if at end
+            else {
+                syncBtn.classList.remove('active');
+                updatePlaybackDisplay();
+                renderPersistentStrikes();
+            }
+        };
+    }
+
+    syncBtn.onclick = () => {
+        isPlaybackMode = false;
+        isPlaybackPlaying = false;
+        playbackTimeMinutes = 1440;
+        slider.value = 1440;
+        syncBtn.classList.add('active');
+        playBtn.innerText = "▶";
+        timeDisplay.innerText = "LIVE";
+        stopPlaybackLoop();
+        renderPersistentStrikes();
+    };
+}
+
+function startPlaybackLoop() {
+    stopPlaybackLoop();
+    playbackInterval = setInterval(() => {
+        const slider = document.getElementById('playback-slider');
+        if (playbackTimeMinutes < 1440) {
+            playbackTimeMinutes += 2; // Fast forward 2 mins per tick
+            slider.value = playbackTimeMinutes;
+            updatePlaybackDisplay();
+            renderPersistentStrikes();
+        } else {
+            stopPlaybackLoop();
+            document.getElementById('playback-play').innerText = "▶";
+        }
+    }, 100);
+}
+
+function stopPlaybackLoop() {
+    if (playbackInterval) clearInterval(playbackInterval);
+}
+
+function updatePlaybackDisplay() {
+    const timeDisplay = document.getElementById('playback-time');
+    const now = Date.now();
+    const playbackDate = new Date((now - ONE_DAY_MS) + (playbackTimeMinutes * 60 * 1000));
+    timeDisplay.innerText = playbackDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
