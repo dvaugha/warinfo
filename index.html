@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StrikeWatch | US-Israel-Iran Conflict Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-mode">
+    <div class="glow-overlay"></div>
+    
+    <header>
+        <div class="logo">
+            <span class="pulse-icon"></span>
+            <h1>STRIKE<span>WATCH</span></h1>
+        </div>
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="label">Israel Air Defense:</span>
+                <span id="defense-status" class="value nominal">NOMINAL</span>
+            </div>
+            <div class="status-item">
+                <span class="label">Last Alert:</span>
+                <span id="last-alert-time" class="value">No active alerts</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="alerts-section">
+            <div class="section-header">
+                <h2>Real-Time Defense Alerts</h2>
+                <div class="live-indicator">● LIVE</div>
+            </div>
+            <div id="alerts-container" class="glass-panel">
+                <div class="placeholder-text">Monitoring Pikud Haoref feed...</div>
+            </div>
+        </section>
+
+        <section class="news-section">
+            <div class="section-header">
+                <h2>Intelligence & Intelligence Reports</h2>
+                <div class="source-filters">
+                    <button class="filter-btn active" data-source="all">All</button>
+                    <button class="filter-btn" data-source="jpost">JPost</button>
+                    <button class="filter-btn" data-source="aljazeera">Al Jazeera</button>
+                    <button class="filter-btn" data-source="reuters">Reuters</button>
+                </div>
+            </div>
+            <div id="news-container" class="news-grid">
+                <!-- News cards will be injected here -->
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>Data provided by unofficial Pikud Haoref API and open RSS news feeds.</p>
+            <p class="disclaimer">For emergency use, refer to official Home Front Command channels.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
