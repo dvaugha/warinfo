@@ -839,7 +839,20 @@ header {
     background: #000;
     position: relative;
     overflow: hidden;
-    filter: grayscale(1) contrast(1.2) brightness(0.8);
+    filter: grayscale(1) contrast(1.4) brightness(0.9);
+    background-size: cover;
+    background-position: center;
+}
+
+.mono-viewport::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url('https://www.transparenttextures.com/patterns/p6.png');
+    /* Digital Noise */
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 1;
 }
 
 .mono-viewport::after {
@@ -847,8 +860,9 @@ header {
     position: absolute;
     inset: 0;
     background: linear-gradient(rgba(255, 255, 255, 0.05) 50%, transparent 50%);
-    background-size: 100% 2px;
+    background-size: 100% 4px;
     pointer-events: none;
+    z-index: 2;
 }
 
 .sat-hud {
