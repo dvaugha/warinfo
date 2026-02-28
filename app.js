@@ -46,6 +46,8 @@ async function init() {
     await fetchAllNews();
     startAlertPolling();
     setupFilters();
+    setupTabs();
+    initMap();
 }
 
 /**
@@ -113,6 +115,9 @@ async function fetchAllNews() {
 
     const results = await Promise.all(fetchPromises);
     allNews = results.flat().sort((a, b) => b.timestamp - a.timestamp);
+
+    calculateEscalationIndex();
+    updateNarrativeSync();
 
     setNewsLoading(false);
     renderNews();
@@ -294,6 +299,165 @@ function isWarRelated(item) {
 
     return (hasLocation && hasConflict) || hasStrongMatches;
 }
+
+/**
+ * Escalation Index Logic
+ */
+function calculateEscalationIndex() {
+    const recentNews = allNews.slice(0, 30);
+    let totalScore = 0;
+
+    const weights = {
+        'iran': 2, 'israel': 2, 'idf': 2, 'irgc': 2,
+        'strike': 4, 'missile': 5, 'attack': 4, 'war': 6,
+        'nuclear': 10, 'ballistic': 8, 'casualty': 7, 'explosion': 4
+    };
+
+    recentNews.forEach(item => {
+        const content = (item.title + " " + item.description).toLowerCase();
+        Object.entries(weights).forEach(([word, weight]) => {
+            if (content.includes(word)) totalScore += weight;
+        });
+    });
+
+    // Normalize to 0-100 range (rough estimation)
+    const normalizedScore = Math.min(Math.round((totalScore / 150) * 100), 100);
+
+    const gauge = document.getElementById('escalation-gauge');
+    const valueDisp = document.getElementById('escalation-value');
+
+    if (gauge && valueDisp) {
+        gauge.style.width = normalizedScore + '%';
+        valueDisp.innerText = normalizedScore + '%';
+
+        // Color based on severity
+        if (normalizedScore > 75) {
+            valueDisp.style.color = '#ff3b3b';
+        } else if (normalizedScore > 40) {
+            valueDisp.style.color = '#ff9500';
+        } else {
+            valueDisp.style.color = '#34c759';
+        }
+    }
+}
+
+/**
+ * Narrative Sync Logic (Grouping)
+ */
+function updateNarrativeSync() {
+    const syncContainer = document.getElementById('narrative-sync-container');
+    if (!syncContainer) return;
+
+    // Simplified grouping: Find common key names in titles
+    const topics = [
+        { name: 'Tehran Strikes', keys: ['tehran', 'strike', 'explosion'] },
+        { name: 'Northern Border', keys: ['lebanon', 'hezbollah', 'north'] },
+        { name: 'Missile Defense', keys: ['interception', 'arrow', 'sling', 'missile'] }
+    ];
+
+    const stagedGroups = topics.map(topic => {
+        const related = allNews.filter(n =>
+            topic.keys.some(k => (n.title + n.description).toLowerCase().includes(k))
+        ).slice(0, 3); // Take top 3 different perspectives
+
+        if (related.length < 2) return null; // Only show if multiple sources cover it
+
+        return `
+            <div class="sync-topic-card">
+                <div class="sync-header"><h3>Topic: ${topic.name}</h3></div>
+                <div class="sync-perspectives">
+                    ${related.map(r => `
+                        <div class="perspective">
+                            <span class="source-label">${r.sourceName}</span>
+                            <h4>${r.title}</h4>
+                            <p>${r.description}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).filter(Boolean);
+
+    syncContainer.innerHTML = stagedGroups.length > 0
+        ? stagedGroups.join('')
+        : '<div class="placeholder-text">Insufficient overlapping data for cross-source comparison.</div>';
+}
+
+/**
+ * Strike Map Logic
+ */
+const CITY_COORDS = {
+    'Tehran': { x: 80, y: 30 },
+    'Isfahan': { x: 75, y: 55 },
+    'Tel Aviv': { x: 25, y: 45 },
+    'Haifa': { x: 25, y: 35 },
+    'Beirut': { x: 28, y: 25 },
+    'Damascus': { x: 35, y: 30 }
+};
+
+function initMap() {
+    const container = document.getElementById('strike-map-container');
+    if (!container) return;
+
+    // Minimalist SVG regional map (simplified)
+    container.innerHTML = `
+        <svg class="map-svg" viewBox="0 0 100 100">
+            <!-- Simplified Landmass -->
+            <path d="M10,20 Q30,15 50,20 T90,30 L85,80 Q50,90 20,70 Z" />
+            <g id="map-active-strikes"></g>
+        </svg>
+    `;
+}
+
+function triggerMapPulse(city) {
+    const group = document.getElementById('map-active-strikes');
+    if (!group) return;
+
+    const coords = CITY_COORDS[city] || { x: Math.random() * 80 + 10, y: Math.random() * 70 + 10 };
+
+    const id = 'pulse-' + Date.now();
+    const pulseHtml = `
+        <circle class="strike-point" cx="${coords.x}" cy="${coords.y}" r="1" />
+        <circle class="strike-pulse" cx="${coords.x}" cy="${coords.y}" r="1">
+            <animate attributeName="r" from="1" to="10" dur="2s" repeatCount="1" />
+            <animate attributeName="opacity" from="1" to="0" dur="2s" repeatCount="1" />
+        </circle>
+    `;
+
+    const div = document.createElement('g');
+    div.innerHTML = pulseHtml;
+    group.appendChild(div);
+
+    setTimeout(() => div.remove(), 2500);
+}
+
+/**
+ * Tab Navigation
+ */
+function setupTabs() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.dataset.tab;
+
+            // UI Update
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            btn.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        });
+    });
+}
+
+// Intercept alert UI to trigger map pulse
+const originalUpdateUI = updateAlertUI;
+updateAlertUI = function (data) {
+    originalUpdateUI(data);
+    if (data && data.data) {
+        data.data.forEach(city => triggerMapPulse(city));
+    }
+};
 
 // Start the app
 init();

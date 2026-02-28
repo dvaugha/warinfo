@@ -21,16 +21,14 @@
             <h1>STRIKE<span>WATCH</span></h1>
         </div>
         <div class="status-bar">
-            <div class="status-item">
-                <span class="label">Israel Air Defense:</span>
-                <span id="defense-status" class="value nominal">NOMINAL</span>
-            </div>
-            <div class="status-item">
-                <span class="label">Defcon:</span>
-                <span class="value level-3">3 (ENHANCED)</span>
+            <div class="status-item escalation-meter">
+                <span class="label">Escalation Index:</span>
+                <div class="gauge-container">
+                    <div id="escalation-gauge" class="gauge-fill" style="width: 42%;"></div>
+                </div>
+                <span id="escalation-value" class="value level-active">42%</span>
             </div>
             <div class="status-item timer">
-                <span class="label">System Time:</span>
                 <span id="current-time" class="value">00:00:00</span>
             </div>
         </div>
@@ -39,13 +37,24 @@
     <main>
         <div class="dashboard-grid">
             <aside class="left-panel">
+                <section class="map-section">
+                    <div class="section-header">
+                        <h2>Regional Strike Map</h2>
+                        <div class="live-indicator">ACTIVE MONITOR</div>
+                    </div>
+                    <div id="strike-map-container" class="glass-panel map-view">
+                        <!-- SVG Map goes here -->
+                        <div class="map-placeholder">Initializing Geospatial Data...</div>
+                    </div>
+                </section>
+
                 <section class="alerts-section">
                     <div class="section-header">
-                        <h2>Live Alerts</h2>
-                        <div class="live-indicator">● LIVE</div>
+                        <h2>Defense Status</h2>
+                        <span id="defense-status" class="status-badge nominal">NOMINAL</span>
                     </div>
-                    <div id="alerts-container" class="glass-panel alerts-feed">
-                        <div class="placeholder-text">Scanning for active air defense signals...</div>
+                    <div id="alerts-container" class="glass-panel alerts-feed small-alerts">
+                        <div class="placeholder-text">Syncing alerts...</div>
                     </div>
                 </section>
 
@@ -67,24 +76,37 @@
             </aside>
 
             <section class="content-primary">
-                <div class="section-header">
-                    <h2>Latest Reports & Intelligence</h2>
-                    <div class="source-filters">
-                        <button class="filter-btn active" data-source="all">All</button>
-                        <button class="filter-btn" data-source="fox">Fox</button>
-                        <button class="filter-btn" data-source="cnn">CNN</button>
-                        <button class="filter-btn" data-source="cbs">CBS</button>
-                        <button class="filter-btn" data-source="abc">ABC</button>
-                        <button class="filter-btn" data-source="jpost">JPost</button>
-                        <button class="filter-btn" data-source="toi">TOI</button>
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-tab="live">Live Intelligence</button>
+                    <button class="tab-btn" data-tab="sync">Narrative Sync</button>
+                </div>
+
+                <div id="tab-live" class="tab-content active">
+                    <div class="section-header">
+                        <h2>Latest Reports & Intelligence</h2>
+                        <div class="source-filters">
+                            <button class="filter-btn active" data-source="all">All</button>
+                            <button class="filter-btn" data-source="fox">Fox</button>
+                            <button class="filter-btn" data-source="cnn">CNN</button>
+                            <button class="filter-btn" data-source="cbs">CBS</button>
+                            <button class="filter-btn" data-source="abc">ABC</button>
+                            <button class="filter-btn" data-source="jpost">JPost</button>
+                            <button class="filter-btn" data-source="toi">TOI</button>
+                        </div>
+                    </div>
+                    <div id="news-container" class="news-grid">
+                        <div class="skeleton-card"></div>
                     </div>
                 </div>
-                <div id="news-container" class="news-grid">
-                    <!-- News cards will be injected here -->
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
+
+                <div id="tab-sync" class="tab-content">
+                    <div class="section-header">
+                        <h2>Perspective Comparison</h2>
+                    </div>
+                    <div id="narrative-sync-container" class="sync-grid">
+                        <div class="placeholder-text">Analyzing cross-source intelligence for narrative alignment...
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
