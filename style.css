@@ -739,6 +739,43 @@ footer {
     margin-bottom: 3rem;
 }
 
+/* Cliff Notes Styling */
+.cliff-note-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.briefing-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--accent-blue);
+    font-weight: 800;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 0.5rem;
+}
+
+.cliff-note-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    color: var(--primary-text);
+}
+
+.cliff-note-item::before {
+    content: "▶";
+    color: var(--accent-red);
+    font-size: 0.7rem;
+    margin-top: 0.4rem;
+}
+
 .icon-btn.large {
     padding: 1rem 2rem;
     font-size: 0.9rem;

@@ -707,10 +707,41 @@ function openArticleSummary(index) {
     if (overlay && titleEl && metaEl && bodyEl && linkEl) {
         titleEl.innerText = article.title;
         metaEl.innerText = `${article.sourceName} | ${new Date(article.timestamp).toLocaleString()}`;
-        bodyEl.innerText = article.description;
+
+        // Generate Cliff Notes (Bulleted Briefing)
+        const cliffNotes = generateCliffNotes(article.description);
+
+        bodyEl.innerHTML = `
+            <div class="cliff-note-section">
+                <div class="briefing-header">
+                    <span class="pulse-icon small"></span>
+                    KEY INTELLIGENCE BRIEFING [CLIFF NOTES]
+                </div>
+                ${cliffNotes.map(note => `<div class="cliff-note-item">${escapeHTML(note)}</div>`).join('')}
+            </div>
+            <div class="original-desc">${escapeHTML(article.description)}</div>
+        `;
+
         linkEl.href = article.link;
 
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
+}
+
+/**
+ * Tactical "Cliff Notes" Generator
+ * Parses sentences and extracts key intel points
+ */
+function generateCliffNotes(text) {
+    if (!text) return ["Intel stream empty. Waiting for further reports..."];
+
+    // Split sentences more reliably
+    const sentences = text.split(/(?<=[.!?])\s+/);
+
+    // Extract top 3-4 key points and treat each as a 'Cliff Note'
+    return sentences
+        .map(s => s.trim())
+        .filter(s => s.length > 15) // Filter out noise
+        .slice(0, 4); // Keep it brief
 }
