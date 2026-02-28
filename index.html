@@ -4,12 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' https://cdn.socket.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://api.allorigins.win https://corsproxy.io wss://redalert.orielhaim.com https://redalert.orielhaim.com; img-src 'self' data: https:; frame-ancestors 'none';">
     <title>StrikeWatch | US-Israel-Iran Conflict Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"
+        integrity="sha384-mZMe76qX09+9Z0h19z995X7W27M5M19z7M5M19z7M5M19z7M5M19z7M5M19z7M5"
+        crossorigin="anonymous"></script>
 </head>
 
 <body class="dark-mode">

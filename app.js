@@ -40,6 +40,19 @@ const currentTimeDisplay = document.getElementById('current-time');
 const filterBtns = document.querySelectorAll('.filter-btn');
 
 /**
+ * Security: Sanitize all untrusted string inputs
+ */
+function escapeHTML(str) {
+    if (!str) return "";
+    return str.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/**
  * Initialize Dashboard
  */
 async function init() {
@@ -148,12 +161,12 @@ function renderNews() {
     }
 
     newsContainer.innerHTML = filtered.map(item => `
-        <article class="news-card" onclick="window.open('${item.link}', '_blank')">
-            <span class="source">${item.sourceName}</span>
-            <h3>${item.title}</h3>
-            <p class="description">${item.description}</p>
+        <article class="news-card" onclick="window.open('${escapeHTML(item.link)}', '_blank')">
+            <span class="source">${escapeHTML(item.sourceName)}</span>
+            <h3>${escapeHTML(item.title)}</h3>
+            <p class="description">${escapeHTML(item.description)}</p>
             <div class="meta">
-                <span>${new Date(item.timestamp).toLocaleString()}</span>
+                <span>${escapeHTML(new Date(item.timestamp).toLocaleString())}</span>
             </div>
         </article>
     `).join('');
@@ -232,9 +245,9 @@ function updateAlertUI(alertData) {
     // Add alert to container if it's new
     const newAlertsHtml = alertData.data.map(city => `
         <div class="alert-item">
-            <div class="city">${city}</div>
-            <div class="desc">${alertData.title || 'Missile Attack'}</div>
-            <div class="time">${new Date().toLocaleTimeString()}</div>
+            <div class="city">${escapeHTML(city)}</div>
+            <div class="desc">${escapeHTML(alertData.title || 'Missile Attack')}</div>
+            <div class="time">${escapeHTML(new Date().toLocaleTimeString())}</div>
         </div>
     `).join('');
 
@@ -375,13 +388,13 @@ function updateNarrativeSync() {
 
         return `
             <div class="sync-topic-card">
-                <div class="sync-header"><h3>Topic: ${topic.name}</h3></div>
+                <div class="sync-header"><h3>Topic: ${escapeHTML(topic.name)}</h3></div>
                 <div class="sync-perspectives">
                     ${related.map(r => `
                         <div class="perspective">
-                            <span class="source-label">${r.sourceName}</span>
-                            <h4>${r.title}</h4>
-                            <p>${r.description}</p>
+                            <span class="source-label">${escapeHTML(r.sourceName)}</span>
+                            <h4>${escapeHTML(r.title)}</h4>
+                            <p>${escapeHTML(r.description)}</p>
                         </div>
                     `).join('')}
                 </div>
