@@ -1,10 +1,10 @@
 const NEWS_SOURCES = {
     fox: "https://moxie.foxnews.com/google-publisher/world.xml",
-    cnn: "http://rss.cnn.com/rss/edition_world.rss",
-    cbs: "https://www.cbsnews.com/latest/rss/world",
     abc: "https://abcnews.go.com/abcnews/internationalheadlines",
-    jpost: "https://rss.jpost.com/rss/rssfeedsiran.aspx",
-    aljazeera: "https://www.aljazeera.com/xml/rss/all.xml"
+    jpost: "https://www.jpost.com/rss/rssfeedsfrontpage.aspx",
+    toi: "https://www.timesofisrael.com/feed/",
+    aljazeera: "https://www.aljazeera.com/xml/rss/all.xml",
+    cbs: "https://www.cbsnews.com/latest/rss/world"
 };
 
 const ALERT_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json";
@@ -255,13 +255,18 @@ function isWarRelated(item) {
     const content = (item.title + " " + item.description).toLowerCase();
 
     // Check for "strikes" or "war" in combination with "Iran" or "Israel"
-    const hasLocation = ["iran", "israel", "tehran", "tel aviv", "idf", "irgc"].some(k => content.includes(k));
-    const hasConflict = ["strike", "missile", "attack", "war", "military", "explosion", "drone"].some(k => content.includes(k));
+    const hasLocation = ["iran", "israel", "tehran", "tel aviv", "idf", "irgc", "middle east"].some(k => content.includes(k));
+    const hasConflict = ["strike", "missile", "attack", "war", "military", "explosion", "drone", "defense", "operation"].some(k => content.includes(k));
 
     // Check for strong war keywords alone
     const hasStrongMatches = STRONG_WAR_KEYWORDS.some(keyword => content.includes(keyword));
 
     // It's war related if it has BOTH location and conflict OR a strong match
+    // Or if it's from JPost/TOI/AlJazeera which are inherently regional
+    if (["JPOST", "TOI", "ALJAZEERA"].includes(item.sourceName)) {
+        return (hasLocation && hasConflict) || hasStrongMatches || content.includes("strike") || content.includes("missile");
+    }
+
     return (hasLocation && hasConflict) || hasStrongMatches;
 }
 
