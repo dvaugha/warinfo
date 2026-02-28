@@ -1,7 +1,10 @@
 const NEWS_SOURCES = {
+    fox: "http://feeds.foxnews.com/foxnews/world",
+    cnn: "http://rss.cnn.com/rss/edition_world.rss",
+    cbs: "https://www.cbsnews.com/world/rss",
+    abc: "https://abcnews.go.com/abcnews/internationalheadlines",
     jpost: "https://rss.jpost.com/rss/rssfeedsiran.aspx",
-    aljazeera: "https://www.aljazeera.com/xml/rss/all.xml",
-    reuters: "https://www.reutersagency.com/feed/?best-topics=world-news&post_type=best"
+    aljazeera: "https://www.aljazeera.com/xml/rss/all.xml"
 };
 
 const ALERT_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json";
