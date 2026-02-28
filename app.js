@@ -65,6 +65,7 @@ async function init() {
     setupTabs();
     initMap();
     setupFullscreenMap();
+    setupArticleOverlay();
 }
 
 /**
@@ -164,8 +165,8 @@ function renderNews() {
         return;
     }
 
-    newsContainer.innerHTML = filtered.map(item => `
-        <article class="news-card" onclick="window.open('${escapeHTML(item.link)}', '_blank')">
+    newsContainer.innerHTML = filtered.map((item, index) => `
+        <article class="news-card" onclick="openArticleSummary(${index})">
             <span class="source">${escapeHTML(item.sourceName)}</span>
             <h3>${escapeHTML(item.title)}</h3>
             <p class="description">${escapeHTML(item.description)}</p>
@@ -660,3 +661,43 @@ updateAlertUI = function (data) {
 
 // Start the app
 init();
+
+/**
+ * Article Summary Overlay Controls
+ */
+function setupArticleOverlay() {
+    const closeBtn = document.getElementById('close-article-btn');
+    const overlay = document.getElementById('article-summary-overlay');
+
+    if (closeBtn && overlay) {
+        closeBtn.addEventListener('click', () => {
+            overlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+    }
+}
+
+function openArticleSummary(index) {
+    const filtered = currentSource === 'all'
+        ? allNews
+        : allNews.filter(n => n.sourceKey === currentSource);
+
+    const article = filtered[index];
+    if (!article) return;
+
+    const overlay = document.getElementById('article-summary-overlay');
+    const titleEl = document.getElementById('summary-title');
+    const metaEl = document.getElementById('summary-meta');
+    const bodyEl = document.getElementById('summary-body');
+    const linkEl = document.getElementById('summary-link');
+
+    if (overlay && titleEl && metaEl && bodyEl && linkEl) {
+        titleEl.innerText = article.title;
+        metaEl.innerText = `${article.sourceName} | ${new Date(article.timestamp).toLocaleString()}`;
+        bodyEl.innerText = article.description;
+        linkEl.href = article.link;
+
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
