@@ -238,6 +238,10 @@ async function fetchAlerts() {
  */
 function updateAlertUI(alertData) {
     if (!alertData || !alertData.data || alertData.data.length === 0) {
+        // If it's the initial call and still nominal, show status but clear syncing
+        if (alertsContainer.querySelector('.placeholder-text')) {
+            alertsContainer.innerHTML = '<div class="nominal-status">No active threats detected in the region.</div>';
+        }
         defenseStatus.innerText = "NOMINAL";
         defenseStatus.className = "value nominal";
         return;
@@ -246,16 +250,20 @@ function updateAlertUI(alertData) {
     defenseStatus.innerText = "ACTIVE ALERTS";
     defenseStatus.className = "value alert pulse-text";
 
+    // Clear placeholder on first alert
+    const placeholder = alertsContainer.querySelector('.placeholder-text');
+    if (placeholder) placeholder.remove();
+
     // Add alert to container if it's new
     const newAlertsHtml = alertData.data.map(city => `
-        <div class="alert-item">
+        <div class="alert-item ${alertData.isIntel ? 'intel-alert' : ''}">
             <div class="city">${escapeHTML(city)}</div>
             <div class="desc">${escapeHTML(alertData.title || 'Missile Attack')}</div>
-            <div class="time">${escapeHTML(new Date().toLocaleTimeString())}</div>
+            <div class="time">${escapeHTML(new Date(alertData.timestamp || Date.now()).toLocaleTimeString())}</div>
         </div>
     `).join('');
 
-    alertsContainer.innerHTML = newAlertsHtml + (alertsContainer.querySelector('.placeholder-text') ? '' : alertsContainer.innerHTML);
+    alertsContainer.innerHTML = newAlertsHtml + alertsContainer.innerHTML;
 
     // Limit to last 20 alerts
     const alerts = alertsContainer.querySelectorAll('.alert-item');
@@ -494,12 +502,21 @@ function processStrikeDetection() {
                 );
 
                 if (!isDuplicate) {
-                    persistentStrikes.push({
+                    const newStrike = {
                         city: cityMatch,
                         title: item.title,
                         source: item.sourceName,
                         timestamp: item.timestamp,
                         id: `strike-${item.timestamp}`
+                    };
+                    persistentStrikes.push(newStrike);
+
+                    // Inject confirmed strike into the Alerts Feed as "Intel Alert"
+                    updateAlertUI({
+                        title: "CONFIRMED STRIKE / EXPLOSION",
+                        data: [cityMatch],
+                        timestamp: item.timestamp,
+                        isIntel: true
                     });
                 }
             }

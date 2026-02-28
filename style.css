@@ -571,6 +571,24 @@ header {
     color: var(--secondary-text);
 }
 
+.intel-alert {
+    border-left: 3px solid var(--accent-blue);
+    background: rgba(0, 122, 255, 0.05);
+}
+
+.intel-alert .city {
+    color: var(--accent-blue);
+}
+
+.nominal-status {
+    padding: 2rem;
+    text-align: center;
+    color: var(--secondary-text);
+    font-size: 0.9rem;
+    font-style: italic;
+    opacity: 0.7;
+}
+
 .skeleton-card {
     height: 180px;
     background: linear-gradient(90deg, #1e1e28 25%, #2a2a35 50%, #1e1e28 75%);
