@@ -9,6 +9,7 @@ const NEWS_SOURCES = {
 
 const ALERT_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json";
 const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+const RED_ALERT_SOCKET = "https://redalert.orielhaim.com";
 
 // Blocklist for keywords commonly found in RSS ads/promos
 const AD_KEYWORDS = [
@@ -143,36 +144,60 @@ function renderNews() {
 }
 
 /**
- * Start Alerts Polling
+ * Start Alerts Polling (Now using Real-Time WebSockets + Global Proxy)
  */
 function startAlertPolling() {
-    // Poll every 5 seconds for new alerts
-    fetchAlerts();
-    setInterval(fetchAlerts, 5000);
+    // 1. Initial history fetch via proxy
+    fetchAlertHistory();
+
+    // 2. Real-time listener via RedAlert (Socket.io)
+    // This script must be included in index.html: <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    if (typeof io !== 'undefined') {
+        const socket = io(RED_ALERT_SOCKET, {
+            transports: ['websocket'],
+            reconnection: true
+        });
+
+        socket.on('connect', () => {
+            console.log('Connected to RedAlert Real-Time Feed');
+        });
+
+        socket.on('alert', (data) => {
+            console.log('Real-time alert received:', data);
+            // RedAlert data format: { title: "...", data: ["city1", "city2"], category: 1 }
+            updateAlertUI(data);
+        });
+    }
+
+    // 3. Fallback polling (every 10s) via secondary proxy for non-Israel users
+    setInterval(fetchAlertHistory, 10000);
 }
 
 /**
- * Fetch real-time alerts from Pikud Haoref
+ * Fetch alert history via proxy
+ */
+async function fetchAlertHistory() {
+    try {
+        // Using allorigins to fetch historical alerts
+        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(ALERT_URL)}`);
+        const data = await response.json();
+
+        if (data && data.contents) {
+            const alerts = JSON.parse(data.contents);
+            if (alerts && alerts.data && alerts.data.length > 0) {
+                updateAlertUI(alerts);
+            }
+        }
+    } catch (error) {
+        console.warn("History fetch failed:", error);
+    }
+}
+
+/**
+ * Fetch real-time alerts from Pikud Haoref (Legacy - kept for reference)
  */
 async function fetchAlerts() {
-    try {
-        // Note: oref.org.il might block non-Israeli IPs. 
-        // Using allorigins as a proxy to bypass simple CORS and IP blocks.
-        const response = await fetch(`${CORS_PROXY}${encodeURIComponent(ALERT_URL)}`);
-
-        // The API returns 204 No Content if there are no active alerts
-        if (response.status === 204) {
-            updateAlertUI(null);
-            return;
-        }
-
-        const data = await response.json();
-        // data looks like: { id: "...", title: "...", data: ["city1", "city2"], desc: "..." }
-        updateAlertUI(data);
-    } catch (error) {
-        console.warn("Could not fetch real-time alerts (likely regional block):", error);
-        // If block occurs, we'll keep the dashboard running but show a status warning
-    }
+    // This is now handled by fetchAlertHistory and the Socket.io listener
 }
 
 /**
