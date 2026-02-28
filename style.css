@@ -348,6 +348,50 @@ header {
     }
 }
 
+/* Confirmed Strike Visuals */
+.strike-marker {
+    fill: #ffcc00;
+    /* Yellow-Orange for strikes */
+    filter: drop-shadow(0 0 12px #ffcc00);
+    stroke: white;
+    stroke-width: 0.3;
+}
+
+.strike-glow {
+    animation: strike-impact 3s infinite;
+    fill: none;
+    stroke: #ff9500;
+}
+
+@keyframes strike-impact {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+        stroke-width: 3;
+    }
+
+    50% {
+        transform: scale(1.5);
+        opacity: 0.2;
+        stroke-width: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+        stroke-width: 3;
+    }
+}
+
+.map-strike-persistent {
+    cursor: help;
+}
+
+.map-strike-persistent:hover .strike-marker {
+    fill: #ffffff;
+    filter: drop-shadow(0 0 20px #ffffff);
+}
+
 /* Tabs */
 .tabs-container {
     display: flex;

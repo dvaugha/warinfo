@@ -28,9 +28,11 @@ const WAR_KEYWORDS = [
 ];
 
 const STRONG_WAR_KEYWORDS = ["iran", "israel", "tehran", "irgc", "missile", "idf", "airstrike"];
+const STRIKE_KEYWORDS = ["explosion", "strike", "airstrike", "bombardment", "blast", "impacted", "intercepted", "hit", "targeted"];
 
 let currentSource = 'all';
 let allNews = [];
+let persistentStrikes = []; // Confirmed strikes from news (persistent for 6h)
 
 // DOM Elements
 const newsContainer = document.getElementById('news-container');
@@ -143,6 +145,7 @@ async function fetchAllNews() {
 
     calculateEscalationIndex();
     updateNarrativeSync();
+    processStrikeDetection();
 
     setNewsLoading(false);
     renderNews();
@@ -452,12 +455,79 @@ function initMap() {
                 `).join('')}
             </g>
 
+            <g class="map-persistent-strikes"></g>
             <g class="map-active-strikes-layer"></g>
         </svg>
     `;
 
     containers.forEach(container => {
-        if (container) container.innerHTML = mapHtml;
+        if (container) {
+            container.innerHTML = mapHtml;
+        }
+    });
+
+    // Once HTML is in place, render any current persistent strikes
+    renderPersistentStrikes();
+}
+
+/**
+ * Strike Detection & Persistent Markers
+ */
+function processStrikeDetection() {
+    const recentNews = allNews.slice(0, 50); // Scan top 50 recent war reports
+    const now = Date.now();
+    const sixHours = 6 * 60 * 60 * 1000;
+
+    recentNews.forEach(item => {
+        const content = (item.title + " " + item.description).toLowerCase();
+
+        // 1. Is there a strike keyword?
+        const hasStrikeWord = STRIKE_KEYWORDS.some(k => content.includes(k));
+        if (hasStrikeWord) {
+            // 2. Is there a city name in the content?
+            const cityMatch = Object.keys(CITY_COORDS).find(city => content.includes(city.toLowerCase()));
+
+            if (cityMatch) {
+                // Ensure we don't duplicate strikes for the same event (same city within same hour)
+                const isDuplicate = persistentStrikes.some(s =>
+                    s.city === cityMatch && Math.abs(s.timestamp - item.timestamp) < (60 * 60 * 1000)
+                );
+
+                if (!isDuplicate) {
+                    persistentStrikes.push({
+                        city: cityMatch,
+                        title: item.title,
+                        timestamp: item.timestamp,
+                        id: `strike-${item.timestamp}`
+                    });
+                }
+            }
+        }
+    });
+
+    // Cleanup and Refresh
+    persistentStrikes = persistentStrikes.filter(s => (now - s.timestamp) < sixHours);
+    renderPersistentStrikes();
+}
+
+function renderPersistentStrikes() {
+    const layers = document.querySelectorAll('.map-persistent-strikes');
+    if (!layers.length) return;
+
+    const strikesHtml = persistentStrikes.map(strike => {
+        const pos = CITY_COORDS[strike.city];
+        if (!pos) return '';
+
+        return `
+            <g class="map-strike-persistent" data-title="${escapeHTML(strike.title)}">
+                <circle class="strike-glow" cx="${pos.x}" cy="${pos.y}" r="3" />
+                <circle class="strike-marker" cx="${pos.x}" cy="${pos.y}" r="1.2" />
+            </g>
+        `;
+    }).join('');
+
+    layers.forEach(layer => {
+        layer.innerHTML = strikesHtml;
     });
 }
 
