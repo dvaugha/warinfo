@@ -166,7 +166,7 @@ function renderNews() {
     }
 
     newsContainer.innerHTML = filtered.map((item, index) => `
-        <article class="news-card" onclick="openArticleSummary(${index})">
+        <article class="news-card" data-index="${index}">
             <span class="source">${escapeHTML(item.sourceName)}</span>
             <h3>${escapeHTML(item.title)}</h3>
             <p class="description">${escapeHTML(item.description)}</p>
@@ -673,6 +673,19 @@ function setupArticleOverlay() {
         closeBtn.addEventListener('click', () => {
             overlay.classList.remove('active');
             document.body.style.overflow = 'auto';
+        });
+    }
+
+    // Event Delegation for News Cards (CSP Compliant)
+    if (newsContainer) {
+        newsContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.news-card');
+            if (card) {
+                const index = parseInt(card.dataset.index);
+                if (!isNaN(index)) {
+                    openArticleSummary(index);
+                }
+            }
         });
     }
 }
