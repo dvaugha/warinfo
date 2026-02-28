@@ -79,6 +79,7 @@ async function init() {
     setupFullscreenMap();
     setupArticleOverlay();
     setupAssetControls();
+    setupUpdateBtn();
 }
 
 /**
@@ -812,8 +813,32 @@ function generateCliffNotes(text) {
 }
 
 /**
- * Tactical Asset Layer Logic
+ * Manual Refresh Logic
  */
+function setupUpdateBtn() {
+    const btn = document.getElementById('update-all-btn');
+    if (btn) {
+        btn.onclick = async () => {
+            if (btn.classList.contains('loading')) return;
+
+            btn.classList.add('loading');
+            btn.querySelector('.refresh-icon').style.transform = 'rotate(360deg)';
+
+            // Re-fetch all data intelligence
+            try {
+                await fetchAllNews();
+                // Brief pause to allow the user to see the tactical spin
+                setTimeout(() => {
+                    btn.classList.remove('loading');
+                    btn.querySelector('.refresh-icon').style.transform = '';
+                }, 1000);
+            } catch (err) {
+                console.error("Manual refresh fail:", err);
+                btn.classList.remove('loading');
+            }
+        };
+    }
+}
 function setupAssetControls() {
     const btn = document.getElementById('toggle-assets-btn');
     if (btn) {
