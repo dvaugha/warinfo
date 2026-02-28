@@ -12,6 +12,18 @@ const ALERT_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json";
 const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 const RED_ALERT_SOCKET = "https://redalert.orielhaim.com";
 
+const ASSET_DATA = [
+    { id: 'csg-72', name: 'USS Abraham Lincoln (CVN-72)', type: 'navy', x: 92, y: 90, status: 'OPERATIONAL', mission: 'STRIKE / DETERRENCE' },
+    { id: 'sub-georgia', name: 'USS Georgia (SSGN-729)', type: 'navy', x: 12, y: 58, status: 'SUBMERGED', mission: 'GUIDED MISSILE SUPPORT' },
+    { id: 'b52-strat', name: 'B-52H Stratofortress Wing', type: 'air', x: 62, y: 88, status: 'READY', mission: 'LONG-RANGE DETERRANCE' },
+    { id: 'f35-squad', name: 'F-35I Adir Squadron', type: 'air', x: 21, y: 52, status: 'ACTIVE PATROL', mission: 'COMBAT AIR PATROL' },
+    { id: 'thaad-1', name: 'THAAD Battery Alpha', type: 'defense', x: 24, y: 57, status: 'ENGAGED', mission: 'BALLISTIC MISSILE DEFENSE' },
+    { id: 'arrow-3', name: 'Arrow-3 Strategic Def.', type: 'defense', x: 23, y: 55, status: 'OPERATIONAL', mission: 'EXO-ATMOSPHERIC DEFENSE' },
+    { id: 'isr-isra', name: 'RQ-4 Global Hawk', type: 'air', x: 68, y: 45, status: 'ELINT ACTIVE', mission: 'SURVEILLANCE' }
+];
+
+let showAssets = false;
+
 // Blocklist for keywords commonly found in RSS ads/promos
 const AD_KEYWORDS = [
     "sponsored", "advertisement", "promotion", "subscribe", "shop",
@@ -66,6 +78,7 @@ async function init() {
     initMap();
     setupFullscreenMap();
     setupArticleOverlay();
+    setupAssetControls();
 }
 
 /**
@@ -465,6 +478,7 @@ function initMap() {
             </g>
 
             <g class="map-persistent-strikes"></g>
+            <g class="map-assets-layer"></g>
             <g class="map-active-strikes-layer"></g>
         </svg>
     `;
@@ -475,8 +489,9 @@ function initMap() {
         }
     });
 
-    // Once HTML is in place, render any current persistent strikes
+    // Once HTML is in place, render layers
     renderPersistentStrikes();
+    renderAssets();
 }
 
 /**
@@ -765,4 +780,86 @@ function generateCliffNotes(text) {
     }
 
     return points.length >= 3 ? points.slice(0, 5) : points;
+}
+
+/**
+ * Tactical Asset Layer Logic
+ */
+function setupAssetControls() {
+    const btn = document.getElementById('toggle-assets-btn');
+    if (btn) {
+        btn.onclick = () => {
+            showAssets = !showAssets;
+            btn.classList.toggle('active');
+            btn.innerText = showAssets ? 'HIDE ASSETS' : 'SHOW ASSETS';
+            renderAssets();
+        };
+    }
+}
+
+function renderAssets() {
+    const layers = document.querySelectorAll('.map-assets-layer');
+    if (!layers.length) return;
+
+    if (!showAssets) {
+        layers.forEach(l => l.innerHTML = '');
+        return;
+    }
+
+    const assetsHtml = ASSET_DATA.map(asset => {
+        let symbol = '◈'; // Defense
+        let className = 'asset-defense';
+
+        if (asset.type === 'navy') { symbol = '⬙'; className = 'asset-navy'; }
+        if (asset.type === 'air') { symbol = '✈'; className = 'asset-air'; }
+
+        return `
+            <g class="asset-icon-group" data-id="${asset.id}" data-type="${asset.type}" 
+               data-name="${escapeHTML(asset.name)}" data-status="${escapeHTML(asset.status)}"
+               data-mission="${escapeHTML(asset.mission)}">
+                
+                ${asset.type === 'air' ? `<circle cx="${asset.x}" cy="${asset.y}" r="4" fill="none" stroke="rgba(52, 199, 89, 0.2)" stroke-dasharray="1,1" class="asset-orbit" />` : ''}
+
+                <rect class="asset-main ${className}" x="${asset.x - 1.5}" y="${asset.y - 1.5}" width="3" height="3" rx="0.5" />
+                <text x="${asset.x}" y="${asset.y + 0.8}" class="asset-label" text-anchor="middle">${symbol}</text>
+            </g>
+        `;
+    }).join('');
+
+    layers.forEach(layer => {
+        layer.innerHTML = assetsHtml;
+    });
+
+    setupAssetTooltips();
+}
+
+function setupAssetTooltips() {
+    const tooltip = document.getElementById('map-tooltip');
+    const assetIcons = document.querySelectorAll('.asset-icon-group');
+
+    assetIcons.forEach(icon => {
+        icon.onmouseenter = (e) => {
+            const name = icon.getAttribute('data-name');
+            const status = icon.getAttribute('data-status');
+            const mission = icon.getAttribute('data-mission');
+
+            tooltip.innerHTML = `
+                <span class="tooltip-source" style="color:var(--accent-green)">ASSET DEPLOYMENT [LIVE]</span>
+                <div class="tooltip-title">${name}</div>
+                <div style="font-size:0.7rem; margin-top:0.5rem; color: #34c759;">STATUS: ${status}</div>
+                <div style="font-size:0.75rem; margin-top:0.2rem; color: #a1a1aa;">MISSION: ${mission}</div>
+            `;
+            tooltip.style.display = 'block';
+            tooltip.style.opacity = '1';
+        };
+
+        icon.onmousemove = (e) => {
+            tooltip.style.left = (e.clientX + 15) + 'px';
+            tooltip.style.top = (e.clientY + 15) + 'px';
+        };
+
+        icon.onmouseleave = () => {
+            tooltip.style.display = 'none';
+        };
+    });
 }

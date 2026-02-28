@@ -201,10 +201,24 @@ header {
     transition: all 0.3s;
 }
 
-.icon-btn:hover {
+.icon-btn.active {
     background: var(--accent-blue);
     color: white;
-    box-shadow: 0 0 15px rgba(0, 122, 255, 0.4);
+}
+
+.map-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.asset-toggle {
+    border-color: var(--accent-green) !important;
+    color: var(--accent-green) !important;
+}
+
+.asset-toggle.active {
+    background: var(--accent-green) !important;
+    color: var(--bg-color) !important;
 }
 
 .live-indicator {
@@ -390,6 +404,57 @@ header {
 .map-strike-persistent:hover .strike-marker {
     fill: #ffffff;
     filter: drop-shadow(0 0 20px #ffffff);
+}
+
+/* Asset Layer Icons */
+.asset-icon-group {
+    cursor: crosshair;
+    transition: all 0.3s;
+}
+
+.asset-icon-group:hover .asset-main {
+    stroke: white;
+    stroke-width: 1;
+}
+
+.asset-navy {
+    fill: #007aff;
+    filter: drop-shadow(0 0 5px #007aff);
+}
+
+.asset-air {
+    fill: #34c759;
+    filter: drop-shadow(0 0 5px #34c759);
+}
+
+.asset-defense {
+    fill: #ff9500;
+    filter: drop-shadow(0 0 5px #ff9500);
+}
+
+.asset-label {
+    fill: white;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 3px;
+    font-weight: 800;
+    text-shadow: 1px 1px 2px black;
+    pointer-events: none;
+}
+
+.asset-orbit {
+    animation: asset-patrol 20s infinite linear;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+@keyframes asset-patrol {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Map Tooltip */
