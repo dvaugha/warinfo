@@ -14,16 +14,30 @@ let allNews = [];
 const newsContainer = document.getElementById('news-container');
 const alertsContainer = document.getElementById('alerts-container');
 const defenseStatus = document.getElementById('defense-status');
-const lastAlertTime = document.getElementById('last-alert-time');
+const currentTimeDisplay = document.getElementById('current-time');
 const filterBtns = document.querySelectorAll('.filter-btn');
 
 /**
  * Initialize Dashboard
  */
 async function init() {
+    startClock();
     await fetchAllNews();
     startAlertPolling();
     setupFilters();
+}
+
+/**
+ * System Clock
+ */
+function startClock() {
+    updateClock();
+    setInterval(updateClock, 1000);
+}
+
+function updateClock() {
+    const now = new Date();
+    currentTimeDisplay.innerText = now.toTimeString().split(' ')[0] + " UTC";
 }
 
 /**
@@ -32,7 +46,7 @@ async function init() {
 async function fetchAllNews() {
     setNewsLoading(true);
     allNews = [];
-    
+
     const fetchPromises = Object.entries(NEWS_SOURCES).map(async ([key, url]) => {
         try {
             const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
@@ -53,7 +67,7 @@ async function fetchAllNews() {
 
     const results = await Promise.all(fetchPromises);
     allNews = results.flat().sort((a, b) => b.timestamp - a.timestamp);
-    
+
     renderNews();
 }
 
@@ -61,8 +75,8 @@ async function fetchAllNews() {
  * Render News Cards
  */
 function renderNews() {
-    const filtered = currentSource === 'all' 
-        ? allNews 
+    const filtered = currentSource === 'all'
+        ? allNews
         : allNews.filter(n => n.sourceKey === currentSource);
 
     if (filtered.length === 0) {
@@ -98,11 +112,11 @@ async function fetchAlerts() {
         // Note: oref.org.il might block non-Israeli IPs. 
         // Using allorigins as a proxy to bypass simple CORS and IP blocks.
         const response = await fetch(`${CORS_PROXY}${encodeURIComponent(ALERT_URL)}`);
-        
+
         // The API returns 204 No Content if there are no active alerts
         if (response.status === 204) {
-             updateAlertUI(null);
-             return;
+            updateAlertUI(null);
+            return;
         }
 
         const data = await response.json();
@@ -126,16 +140,17 @@ function updateAlertUI(alertData) {
 
     defenseStatus.innerText = "ACTIVE ALERTS";
     defenseStatus.className = "value alert pulse-text";
-    lastAlertTime.innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
 
     // Add alert to container if it's new
-    alertsContainer.innerHTML = alertData.data.map(city => `
+    const newAlertsHtml = alertData.data.map(city => `
         <div class="alert-item">
             <div class="city">${city}</div>
             <div class="desc">${alertData.title || 'Missile Attack'}</div>
             <div class="time">${new Date().toLocaleTimeString()}</div>
         </div>
-    `).join('') + alertsContainer.innerHTML;
+    `).join('');
+
+    alertsContainer.innerHTML = newAlertsHtml + (alertsContainer.querySelector('.placeholder-text') ? '' : alertsContainer.innerHTML);
 
     // Limit to last 20 alerts
     const alerts = alertsContainer.querySelectorAll('.alert-item');

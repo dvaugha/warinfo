@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StrikeWatch | US-Israel-Iran Conflict Dashboard</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
 </head>
+
 <body class="dark-mode">
     <div class="glow-overlay"></div>
-    
+
     <header>
         <div class="logo">
-            <span class="pulse-icon"></span>
+            <div class="pulse-icon"></div>
             <h1>STRIKE<span>WATCH</span></h1>
         </div>
         <div class="status-bar">
@@ -21,40 +25,65 @@
                 <span id="defense-status" class="value nominal">NOMINAL</span>
             </div>
             <div class="status-item">
-                <span class="label">Last Alert:</span>
-                <span id="last-alert-time" class="value">No active alerts</span>
+                <span class="label">Defcon:</span>
+                <span class="value level-3">3 (ENHANCED)</span>
+            </div>
+            <div class="status-item timer">
+                <span class="label">System Time:</span>
+                <span id="current-time" class="value">00:00:00</span>
             </div>
         </div>
     </header>
 
     <main>
-        <section class="alerts-section">
-            <div class="section-header">
-                <h2>Real-Time Defense Alerts</h2>
-                <div class="live-indicator">● LIVE</div>
-            </div>
-            <div id="alerts-container" class="glass-panel">
-                <div class="placeholder-text">Monitoring Pikud Haoref feed...</div>
-            </div>
-        </section>
+        <div class="dashboard-grid">
+            <aside class="left-panel">
+                <section class="alerts-section">
+                    <div class="section-header">
+                        <h2>Live Alerts</h2>
+                        <div class="live-indicator">● LIVE</div>
+                    </div>
+                    <div id="alerts-container" class="glass-panel alerts-feed">
+                        <div class="placeholder-text">Scanning for active air defense signals...</div>
+                    </div>
+                </section>
 
-        <section class="news-section">
-            <div class="section-header">
-                <h2>Intelligence & Intelligence Reports</h2>
-                <div class="source-filters">
-                    <button class="filter-btn active" data-source="all">All</button>
-                    <button class="filter-btn" data-source="jpost">JPost</button>
-                    <button class="filter-btn" data-source="aljazeera">Al Jazeera</button>
-                    <button class="filter-btn" data-source="reuters">Reuters</button>
+                <section class="intelligence-brief">
+                    <div class="section-header">
+                        <h2>Intelligence Brief</h2>
+                    </div>
+                    <div class="glass-panel intel-feed">
+                        <div class="intel-item">
+                            <span class="timestamp">07:22 UTC</span>
+                            <p>US Central Command reports increased aerial activity over the Persian Gulf.</p>
+                        </div>
+                        <div class="intel-item">
+                            <span class="timestamp">06:45 UTC</span>
+                            <p>Israeli Ministry of Defense confirms readiness of Arrow-3 and David's Sling systems.</p>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+
+            <section class="content-primary">
+                <div class="section-header">
+                    <h2>Latest Reports & Intelligence</h2>
+                    <div class="source-filters">
+                        <button class="filter-btn active" data-source="all">All</button>
+                        <button class="filter-btn" data-source="jpost">JPost</button>
+                        <button class="filter-btn" data-source="aljazeera">Al Jazeera</button>
+                        <button class="filter-btn" data-source="reuters">Reuters</button>
+                    </div>
                 </div>
-            </div>
-            <div id="news-container" class="news-grid">
-                <!-- News cards will be injected here -->
-                <div class="skeleton-card"></div>
-                <div class="skeleton-card"></div>
-                <div class="skeleton-card"></div>
-            </div>
-        </section>
+                <div id="news-container" class="news-grid">
+                    <!-- News cards will be injected here -->
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+            </section>
+        </div>
     </main>
 
     <footer>
@@ -66,4 +95,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>
