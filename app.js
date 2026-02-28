@@ -10,6 +10,13 @@ const NEWS_SOURCES = {
 const ALERT_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json";
 const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 
+// Blocklist for keywords commonly found in RSS ads/promos
+const AD_KEYWORDS = [
+    "sponsored", "advertisement", "promotion", "subscribe", "shop",
+    "offer", "deal", "limited time", "gift card", "save now",
+    "partner content", "special report: sponsored", "buy now"
+];
+
 let currentSource = 'all';
 let allNews = [];
 
@@ -68,7 +75,7 @@ async function fetchAllNews() {
                     const pubDate = item.querySelector("pubDate")?.textContent || new Date().toISOString();
                     const description = item.querySelector("description")?.textContent || "";
 
-                    return {
+                    const newItem = {
                         title,
                         link,
                         sourceKey: key,
@@ -76,7 +83,13 @@ async function fetchAllNews() {
                         timestamp: new Date(pubDate).getTime(),
                         description: description.replace(/<[^>]*>?/gm, '').substring(0, 150) + "..."
                     };
-                }).filter(item => !isNaN(item.timestamp));
+
+                    if (isAdvertisement(newItem)) return null;
+                    if (isNaN(newItem.timestamp)) return null;
+                    if (newItem.title.length < 5) return null;
+
+                    return newItem;
+                }).filter(item => item !== null);
             }
         } catch (error) {
             console.error(`Error fetching ${key}:`, error);
@@ -200,6 +213,26 @@ function setNewsLoading(isLoading) {
     if (isLoading) {
         newsContainer.innerHTML = '<div class="skeleton-card"></div>'.repeat(6);
     }
+}
+
+/**
+ * Filter out ads based on keywords in title or description
+ */
+function isAdvertisement(item) {
+    const content = (item.title + " " + item.description).toLowerCase();
+    // Check for common ad keywords
+    if (AD_KEYWORDS.some(keyword => content.includes(keyword))) {
+        return true;
+    }
+    // Check for extremely short content which often precedes ads
+    if (item.description.length < 20 && !item.title.toLowerCase().includes("breaking")) {
+        return true;
+    }
+    // Filter out items that are just links to shop or subscribe
+    if (item.link.includes("/shop/") || item.link.includes("/subscribe")) {
+        return true;
+    }
+    return false;
 }
 
 // Start the app
