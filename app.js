@@ -280,6 +280,9 @@ function updateAlertUI(alertData) {
 
     alertsContainer.innerHTML = newAlertsHtml + alertsContainer.innerHTML;
 
+    // Pulse saturation on new alerts
+    updateDefenseSaturation();
+
     // Limit to last 20 alerts
     const alerts = alertsContainer.querySelectorAll('.alert-item');
     if (alerts.length > 20) {
@@ -568,6 +571,9 @@ function processStrikeDetection() {
             }
         }
     });
+
+    // Pulse saturation on any new strikes
+    updateDefenseSaturation();
 
     // Cleanup and Refresh
     persistentStrikes = persistentStrikes.filter(s => (now - s.timestamp) < sixHours);
@@ -915,5 +921,62 @@ function setupAssetTooltips() {
         icon.onmouseleave = () => {
             tooltip.style.display = 'none';
         };
+    });
+}
+
+/**
+ * Defense Saturation Logic
+ */
+function updateDefenseSaturation() {
+    const alerts = document.querySelectorAll('.alert-item').length;
+    const strikes = persistentStrikes.length;
+
+    // Saturation formula: alerts (high weight) + strikes (medium weight)
+    let load = (alerts * 8) + (strikes * 12);
+    load = Math.min(load, 100);
+    if (load < 5) load = 8; // Baseline standby load
+
+    const bar = document.getElementById('saturation-bar');
+    const percentEl = document.getElementById('saturation-percent');
+    const label = document.getElementById('saturation-label');
+    const widget = document.querySelector('.saturation-widget');
+
+    if (bar && percentEl && label) {
+        bar.style.width = `${load}%`;
+        percentEl.innerText = `${load}%`;
+
+        // Battery Status Updates
+        updateBatteryStatus('iron-dome', load > 40 ? (load > 80 ? 'SATURATED' : 'INTERCEPTING') : 'READY');
+        updateBatteryStatus('aegis', load > 20 ? (load > 60 ? 'HIGH LOAD' : 'AUTO-INTERCEPT') : 'STANDBY');
+        updateBatteryStatus('arrow', load > 70 ? 'ACTIVE TARGETING' : 'READY');
+
+        if (load > 80) {
+            label.innerText = "SATURATION WARNING";
+            label.className = "status-badge alert pulse-text";
+            widget.classList.add('saturation-warning');
+        } else if (load > 40) {
+            label.innerText = "HIGH LOAD";
+            label.className = "status-badge alert";
+            widget.classList.remove('saturation-warning');
+        } else {
+            label.innerText = "STABLE";
+            label.className = "status-badge nominal";
+            widget.classList.remove('saturation-warning');
+        }
+    }
+}
+
+function updateBatteryStatus(sysId, status) {
+    const items = document.querySelectorAll(`.system-item[data-sys="${sysId}"]`);
+    items.forEach(item => {
+        const statusEl = item.querySelector('.sys-status');
+        if (statusEl) {
+            statusEl.innerText = status;
+            statusEl.className = 'sys-status';
+
+            if (status.includes('READY') || status.includes('STANDBY')) statusEl.classList.add('status-nominal');
+            else if (status.includes('INTERCEPT') || status.includes('LOAD')) statusEl.classList.add('status-high');
+            else statusEl.classList.add('status-saturation');
+        }
     });
 }

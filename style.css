@@ -706,6 +706,76 @@ header {
     opacity: 0.7;
 }
 
+/* Defense Saturation Widget */
+.saturation-widget {
+    padding: 1.5rem;
+}
+
+.saturation-container {
+    margin-bottom: 1.5rem;
+}
+
+.saturation-gauge {
+    display: block;
+    margin-bottom: 0.8rem;
+    overflow: visible;
+}
+
+#saturation-bar {
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1), fill 0.3s ease;
+}
+
+.saturation-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.systems-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.system-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.sys-name {
+    color: var(--secondary-text);
+}
+
+.sys-status {
+    font-weight: 800;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.status-nominal {
+    color: var(--accent-blue);
+}
+
+.status-high {
+    color: var(--accent-orange);
+}
+
+.status-saturation {
+    color: var(--accent-red);
+    animation: blink 1s infinite;
+}
+
+.saturation-warning #saturation-bar {
+    fill: var(--accent-red) !important;
+    filter: drop-shadow(0 0 10px var(--accent-red));
+}
+
 .skeleton-card {
     height: 180px;
     background: linear-gradient(90deg, #1e1e28 25%, #2a2a35 50%, #1e1e28 75%);

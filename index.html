@@ -70,6 +70,42 @@
                     </div>
                 </section>
 
+                <section class="defense-saturation-section">
+                    <div class="section-header">
+                        <h2>Defense Saturation</h2>
+                        <span id="saturation-label" class="status-badge nominal">STABLE</span>
+                    </div>
+                    <div class="glass-panel saturation-widget">
+                        <div class="saturation-container">
+                            <svg viewBox="0 0 100 20" class="saturation-gauge">
+                                <rect x="0" y="5" width="100" height="10" rx="5" fill="rgba(255,255,255,0.05)" />
+                                <rect id="saturation-bar" x="0" y="5" width="12%" height="10" rx="5"
+                                    fill="var(--accent-blue)" />
+                                <line id="warn-threshold" x1="80" y1="0" x2="80" y2="20" stroke="rgba(255,69,58,0.3)"
+                                    stroke-dasharray="2,2" />
+                            </svg>
+                            <div class="saturation-meta">
+                                <span class="label">System Load:</span>
+                                <span id="saturation-percent" class="value">12%</span>
+                            </div>
+                        </div>
+                        <div id="defense-systems" class="systems-grid">
+                            <div class="system-item" data-sys="iron-dome">
+                                <span class="sys-name">Iron Dome</span>
+                                <span class="sys-status status-nominal">READY</span>
+                            </div>
+                            <div class="system-item" data-sys="aegis">
+                                <span class="sys-name">Aegis (USN)</span>
+                                <span class="sys-status status-nominal">AUTO-INTERCEPT</span>
+                            </div>
+                            <div class="system-item" data-sys="arrow">
+                                <span class="sys-name">Arrow-3</span>
+                                <span class="sys-status status-nominal">STANDBY</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="intelligence-brief">
                     <div class="section-header">
                         <h2>Intelligence Brief</h2>
