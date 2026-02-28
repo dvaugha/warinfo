@@ -44,7 +44,7 @@ function updateClock() {
 }
 
 /**
- * Fetch news from RSS sources via rss2json
+ * Fetch news from RSS sources using a proxy and manual XML parsing
  */
 async function fetchAllNews() {
     setNewsLoading(true);
@@ -52,15 +52,31 @@ async function fetchAllNews() {
 
     const fetchPromises = Object.entries(NEWS_SOURCES).map(async ([key, url]) => {
         try {
-            const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+            // Using allorigins proxy to bypass CORS and get raw XML
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
             const data = await response.json();
-            if (data.status === 'ok') {
-                return data.items.map(item => ({
-                    ...item,
-                    sourceKey: key,
-                    sourceName: key.toUpperCase(),
-                    timestamp: new Date(item.pubDate).getTime()
-                }));
+
+            if (data && data.contents) {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                const items = xmlDoc.querySelectorAll("item");
+
+                return Array.from(items).map(item => {
+                    const title = item.querySelector("title")?.textContent || "No Title";
+                    const link = item.querySelector("link")?.textContent || "#";
+                    const pubDate = item.querySelector("pubDate")?.textContent || new Date().toISOString();
+                    const description = item.querySelector("description")?.textContent || "";
+
+                    return {
+                        title,
+                        link,
+                        sourceKey: key,
+                        sourceName: key.toUpperCase(),
+                        timestamp: new Date(pubDate).getTime(),
+                        description: description.replace(/<[^>]*>?/gm, '').substring(0, 150) + "..."
+                    };
+                }).filter(item => !isNaN(item.timestamp));
             }
         } catch (error) {
             console.error(`Error fetching ${key}:`, error);
@@ -71,6 +87,7 @@ async function fetchAllNews() {
     const results = await Promise.all(fetchPromises);
     allNews = results.flat().sort((a, b) => b.timestamp - a.timestamp);
 
+    setNewsLoading(false);
     renderNews();
 }
 
@@ -91,6 +108,7 @@ function renderNews() {
         <article class="news-card" onclick="window.open('${item.link}', '_blank')">
             <span class="source">${item.sourceName}</span>
             <h3>${item.title}</h3>
+            <p class="description">${item.description}</p>
             <div class="meta">
                 <span>${new Date(item.timestamp).toLocaleString()}</span>
             </div>

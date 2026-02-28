@@ -218,12 +218,24 @@ header {
     font-size: 1.1rem;
     font-weight: 600;
     line-height: 1.4;
+    margin-bottom: 0.75rem;
+}
+
+.news-card .description {
+    font-size: 0.85rem;
+    color: var(--secondary-text);
     margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .news-card .meta {
     font-size: 0.8rem;
-    color: var(--secondary-text);
+    color: var(--accent-blue);
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .alert-item {
