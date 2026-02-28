@@ -1,7 +1,7 @@
 const NEWS_SOURCES = {
-    fox: "http://feeds.foxnews.com/foxnews/world",
+    fox: "https://moxie.foxnews.com/google-publisher/world.xml",
     cnn: "http://rss.cnn.com/rss/edition_world.rss",
-    cbs: "https://www.cbsnews.com/world/rss",
+    cbs: "https://www.cbsnews.com/latest/rss/world",
     abc: "https://abcnews.go.com/abcnews/internationalheadlines",
     jpost: "https://rss.jpost.com/rss/rssfeedsiran.aspx",
     aljazeera: "https://www.aljazeera.com/xml/rss/all.xml"
@@ -21,8 +21,11 @@ const WAR_KEYWORDS = [
     "iran", "israel", "strike", "missile", "attack", "war", "tehran", "tel aviv",
     "defense", "idf", "irgc", "explosion", "conflict", "military", "strike",
     "drone", "airspace", "siren", "hezbollah", "houthi", "gaza", "lebanon",
-    "retaliation", "operation", "threat", "ballistic", "uav"
+    "retaliation", "operation", "threat", "ballistic", "uav", "netanyahu",
+    "khamenei", "nuclear", "airstrike", "bombardment", "intercept"
 ];
+
+const STRONG_WAR_KEYWORDS = ["iran", "israel", "tehran", "irgc", "missile", "idf", "airstrike"];
 
 let currentSource = 'all';
 let allNews = [];
@@ -250,7 +253,16 @@ function isAdvertisement(item) {
  */
 function isWarRelated(item) {
     const content = (item.title + " " + item.description).toLowerCase();
-    return WAR_KEYWORDS.some(keyword => content.includes(keyword));
+
+    // Check for "strikes" or "war" in combination with "Iran" or "Israel"
+    const hasLocation = ["iran", "israel", "tehran", "tel aviv", "idf", "irgc"].some(k => content.includes(k));
+    const hasConflict = ["strike", "missile", "attack", "war", "military", "explosion", "drone"].some(k => content.includes(k));
+
+    // Check for strong war keywords alone
+    const hasStrongMatches = STRONG_WAR_KEYWORDS.some(keyword => content.includes(keyword));
+
+    // It's war related if it has BOTH location and conflict OR a strong match
+    return (hasLocation && hasConflict) || hasStrongMatches;
 }
 
 // Start the app
