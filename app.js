@@ -708,8 +708,8 @@ function openArticleSummary(index) {
         titleEl.innerText = article.title;
         metaEl.innerText = `${article.sourceName} | ${new Date(article.timestamp).toLocaleString()}`;
 
-        // Generate Cliff Notes (Bulleted Briefing)
-        const cliffNotes = generateCliffNotes(article.description);
+        // Generate Cliff Notes (Bulleted Briefing) synthesized from title and description
+        const cliffNotes = generateCliffNotes(article.title + ". " + article.description);
 
         bodyEl.innerHTML = `
             <div class="cliff-note-section">
@@ -734,14 +734,35 @@ function openArticleSummary(index) {
  * Parses sentences and extracts key intel points
  */
 function generateCliffNotes(text) {
-    if (!text) return ["Intel stream empty. Waiting for further reports..."];
+    if (!text || text.length < 10) return ["Intel stream empty. Waiting for further reports..."];
 
-    // Split sentences more reliably
-    const sentences = text.split(/(?<=[.!?])\s+/);
+    // 1. Initial split by sentence markers
+    let points = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 10);
 
-    // Extract top 3-4 key points and treat each as a 'Cliff Note'
-    return sentences
-        .map(s => s.trim())
-        .filter(s => s.length > 15) // Filter out noise
-        .slice(0, 4); // Keep it brief
+    // 2. If we have less than 3 points, try splitting long sentences at commas or conjunctions
+    if (points.length < 3) {
+        let expandedPoints = [];
+        points.forEach(point => {
+            if (point.length > 60 && expandedPoints.length < 5) {
+                // Split long sentences at certain markers to create more bullet points
+                const subs = point.split(/, and |, but |, as |; /i);
+                expandedPoints.push(...subs);
+            } else {
+                expandedPoints.push(point);
+            }
+        });
+        points = expandedPoints.map(p => p.trim()).filter(p => p.length > 10);
+    }
+
+    // 3. Cleanup: Remove trailing punctuation for a cleaner "note" look
+    points = points.map(p => p.replace(/[.!?]$/, ''));
+
+    // 4. Ensure we return between 3 and 5 points
+    if (points.length > 5) return points.slice(0, 5);
+    if (points.length < 3 && points.length > 0) {
+        // Fallback for very short articles: just take what we have
+        return points;
+    }
+
+    return points.length >= 3 ? points.slice(0, 5) : points;
 }
