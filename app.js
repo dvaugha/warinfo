@@ -62,6 +62,7 @@ async function init() {
     setupFilters();
     setupTabs();
     initMap();
+    setupFullscreenMap();
 }
 
 /**
@@ -422,13 +423,12 @@ const CITY_COORDS = {
 };
 
 function initMap() {
-    const container = document.getElementById('strike-map-container');
-    if (!container) return;
+    const containers = [
+        document.getElementById('strike-map-container'),
+        document.getElementById('fullscreen-map-container')
+    ];
 
-    // Detailed minimalist regional map
-    // x: 0 (West Mediterranean) to 100 (East Iran)
-    // y: 0 (Black Sea / Caucasus) to 100 (Persian Gulf)
-    container.innerHTML = `
+    const mapHtml = `
         <svg class="map-svg" viewBox="0 0 100 100">
             <!-- Israel/Palestine/Jordan Landmass -->
             <path class="map-land" d="M20,40 Q22,50 21,70 L25,72 Q27,60 25,42 Z" />
@@ -445,38 +445,43 @@ function initMap() {
             <text x="40" y="58" class="map-country-label">Iraq</text>
             <text x="75" y="55" class="map-country-label">Iran</text>
 
-            <g id="map-cities">
+            <g class="map-cities">
                 ${Object.entries(CITY_COORDS).map(([name, pos]) => `
                     <circle cx="${pos.x}" cy="${pos.y}" r="0.6" class="map-city-dot" />
-                    <text x="${pos.x + 1.5}" y="${pos.y + 1}" class="map-city-label">${name}</text>
+                    <text x="${pos.x + 1.5}" y="${pos.y + 1}" class="map-city-label">${escapeHTML(name)}</text>
                 `).join('')}
             </g>
 
-            <g id="map-active-strikes"></g>
+            <g class="map-active-strikes-layer"></g>
         </svg>
     `;
+
+    containers.forEach(container => {
+        if (container) container.innerHTML = mapHtml;
+    });
 }
 
 function triggerMapPulse(city) {
-    const group = document.getElementById('map-active-strikes');
-    if (!group) return;
+    const strikeLayers = document.querySelectorAll('.map-active-strikes-layer');
+    if (strikeLayers.length === 0) return;
 
     const coords = CITY_COORDS[city] || { x: Math.random() * 80 + 10, y: Math.random() * 70 + 10 };
 
-    const id = 'pulse-' + Date.now();
     const pulseHtml = `
-        <circle class="strike-point" cx="${coords.x}" cy="${coords.y}" r="1" />
-        <circle class="strike-pulse" cx="${coords.x}" cy="${coords.y}" r="1">
-            <animate attributeName="r" from="1" to="10" dur="2s" repeatCount="1" />
+        <circle class="strike-point" cx="${coords.x}" cy="${coords.y}" r="1.5" />
+        <circle class="strike-pulse" cx="${coords.x}" cy="${coords.y}" r="1.5">
+            <animate attributeName="r" from="1.5" to="15" dur="2s" repeatCount="1" />
             <animate attributeName="opacity" from="1" to="0" dur="2s" repeatCount="1" />
         </circle>
     `;
 
-    const div = document.createElement('g');
-    div.innerHTML = pulseHtml;
-    group.appendChild(div);
-
-    setTimeout(() => div.remove(), 2500);
+    strikeLayers.forEach(layer => {
+        // Use proper SVG namespace for dynamic elements
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.innerHTML = pulseHtml;
+        layer.appendChild(g);
+        setTimeout(() => g.remove(), 2500);
+    });
 }
 
 /**
@@ -488,7 +493,6 @@ function setupTabs() {
         btn.addEventListener('click', () => {
             const tabId = btn.dataset.tab;
 
-            // UI Update
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
@@ -498,10 +502,33 @@ function setupTabs() {
     });
 }
 
+/**
+ * Fullscreen Map Controls
+ */
+function setupFullscreenMap() {
+    const expandBtn = document.getElementById('expand-map-btn');
+    const closeBtn = document.getElementById('close-map-btn');
+    const overlay = document.getElementById('fullscreen-map-overlay');
+
+    if (expandBtn && overlay) {
+        expandBtn.addEventListener('click', () => {
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    }
+
+    if (closeBtn && overlay) {
+        closeBtn.addEventListener('click', () => {
+            overlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+    }
+}
+
 // Intercept alert UI to trigger map pulse
 const originalUpdateUI = updateAlertUI;
 updateAlertUI = function (data) {
-    originalUpdateUI(data);
+    if (originalUpdateUI) originalUpdateUI(data);
     if (data && data.data) {
         data.data.forEach(city => triggerMapPulse(city));
     }

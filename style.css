@@ -182,6 +182,31 @@ header {
     margin-bottom: 1.5rem;
 }
 
+.section-header h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--primary-text);
+}
+
+.icon-btn {
+    background: rgba(0, 122, 255, 0.1);
+    border: 1px solid var(--accent-blue);
+    color: var(--accent-blue);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.icon-btn:hover {
+    background: var(--accent-blue);
+    color: white;
+    box-shadow: 0 0 15px rgba(0, 122, 255, 0.4);
+}
+
 .live-indicator {
     background: rgba(255, 59, 59, 0.1);
     color: var(--accent-red);
@@ -511,6 +536,78 @@ footer {
     margin-top: 0.5rem;
     font-style: italic;
     font-size: 0.75rem;
+}
+
+/* Fullscreen Overlay */
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--bg-color);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.fullscreen-overlay.active {
+    display: flex;
+    animation: fade-in-up 0.4s ease-out;
+}
+
+.overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--panel-border);
+    margin-bottom: 2rem;
+}
+
+.back-btn {
+    background: rgba(255, 59, 59, 0.1);
+    border: 1px solid var(--accent-red);
+    color: var(--accent-red);
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 800;
+    transition: all 0.3s;
+}
+
+.back-btn:hover {
+    background: var(--accent-red);
+    color: white;
+    box-shadow: 0 0 20px rgba(255, 59, 59, 0.4);
+}
+
+.large-map-view {
+    flex: 1;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 20px;
+    border: 1px solid var(--panel-border);
+    overflow: hidden;
+}
+
+.logo.small h1 {
+    font-size: 1.5rem;
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes pulse {
